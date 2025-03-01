@@ -36,4 +36,11 @@ dependencies and failures gracefully.
 
 ## System Design
 
-<img src="https://i.ibb.co.com/V5SzWdw/distributed-job-queue-system-with-redis-2.jpg" alt="diagram">
+<img src="https://i.ibb.co.com/r2Fx63kT/distributed-job-queue-system-with-redis-4.jpg" alt="diagram">
+
+## Known Issues
+
+* The current system design does not support horizontal scaling based on queue length. However, manual scaling is
+  possible using Nginx. To address this, Kubernetes needs to be applied.
+* The current implementation does not support dependency management.
+* PostgreSQL and Redis are single points of failure. The solution is to use clustering.

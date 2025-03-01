@@ -1,6 +1,22 @@
+x-producer-common:
+  &producer-common
+  build:
+    context: ./producer
+    dockerfile: Dockerfile
+  networks:
+    - app-network
+
+x-worker-common:
+  &worker-common
+  build:
+    context: ./worker
+    dockerfile: Dockerfile
+  networks:
+    - app-network
+
 services:
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     container_name: nginx-lb
     ports:
       - "8090:80"
@@ -20,84 +36,87 @@ services:
       - app-network
 
   producer_1:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
+    <<: *producer-common
     container_name: producer_1
     environment:
+      - SERVER_NAME=producer_1
       - SERVER_PORT=8080
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   producer_2:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
+    <<: *producer-common
     container_name: producer_2
     environment:
+      - SERVER_NAME=producer_2
       - SERVER_PORT=8080
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   producer_3:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
+    <<: *producer-common
     container_name: producer_3
     environment:
+      - SERVER_NAME=producer_3
       - SERVER_PORT=8080
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   worker_1:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    <<: *worker-common
     container_name: worker_1
     environment:
+      - SERVER_NAME=worker_1
       - SERVER_PORT=8085
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   worker_2:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    <<: *worker-common
     container_name: worker_2
     environment:
+      - SERVER_NAME=worker_2
       - SERVER_PORT=8085
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   worker_3:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    <<: *worker-common
     container_name: worker_3
     environment:
+      - SERVER_NAME=worker_3
       - SERVER_PORT=8085
-    networks:
-      - app-network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
   worker_4:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    <<: *worker-common
     container_name: worker_4
     environment:
+      - SERVER_NAME=worker_4
       - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
+
+  worker_5:
+    <<: *worker-common
+    container_name: worker_5
+    environment:
+      - SERVER_NAME=worker_5
+      - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
+
+  postgres:
+    image: postgres:alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: job_queue_db
+    ports:
+      - "6000:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
 
-  worker_5:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
-    container_name: worker_5
-    environment:
-      - SERVER_PORT=8085
-    networks:
-      - app-network
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   app-network:
