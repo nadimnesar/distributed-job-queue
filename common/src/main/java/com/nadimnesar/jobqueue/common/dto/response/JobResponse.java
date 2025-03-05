@@ -7,11 +7,12 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class JobResponse {
-    private Long id;
+    private UUID id;
     private JobPriority priority;
     private JobStatus status;
     private JobType type;

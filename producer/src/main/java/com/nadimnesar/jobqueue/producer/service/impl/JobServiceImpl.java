@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
 
     public JobEntity submitJob(JobRequest jobRequest) {
-        logger.info("Submitting job {}", jobRequest);
+        logger.info("JobServiceImpl|Submitting job {}", jobRequest);
 
         JobEntity jobEntity = JobEntity.builder()
                 .type(jobRequest.getType())
@@ -38,7 +39,7 @@ public class JobServiceImpl implements JobService {
     }
 
     public List<JobResponse> getAllJobs(int pageNumber, int pageSize) {
-        logger.info("Getting all jobs by page number: {}, page size: {}", pageNumber, pageSize);
+        logger.info("JobServiceImpl|Getting all jobs by page number: {}, page size: {}", pageNumber, pageSize);
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
         List<JobEntity> jobEntityEntities = jobRepository.findAll(pageable).getContent();
@@ -61,10 +62,11 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobResponse getJobById(Long jobId) {
-        logger.info("Getting job by id: {}", jobId);
+    public JobResponse getJobById(String jobId) {
+        logger.info("JobServiceImpl|Getting job by id: {}", jobId);
 
-        Optional<JobEntity> job = jobRepository.findById(jobId);
+        UUID id = UUID.fromString(jobId);
+        Optional<JobEntity> job = jobRepository.findById(id);
 
         return job.map(jobEntity -> JobResponse.builder()
                 .id(jobEntity.getId())

@@ -3,21 +3,22 @@ package com.nadimnesar.jobqueue.producer.entity;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
+import com.nadimnesar.jobqueue.producer.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
-@Data
-@SuperBuilder
-@AllArgsConstructor
-@NoArgsConstructor
 @Entity
-@EntityListeners(AuditingEntityListener.class)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
+@Table(name = "job")
 public class JobEntity extends BaseEntity {
+
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
