@@ -99,25 +99,6 @@ services:
       - SERVER_PORT=8085
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/job_queue_db
 
-  postgres:
-    image: postgres:alpine
-    container_name: postgres_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: job_queue_db
-    ports:
-      - "6000:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
-
-volumes:
-  postgres_data:
-    driver: local
-
 networks:
   app-network:
-    driver: bridge
+    external: true

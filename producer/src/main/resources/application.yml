@@ -11,5 +11,8 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
+  liquibase:
+    enabled: false
+    change-log: src/main/resources/db/master.json

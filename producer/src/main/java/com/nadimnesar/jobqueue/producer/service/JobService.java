@@ -11,5 +11,5 @@ public interface JobService {
 
     List<JobResponse> getAllJobs(int pageNumber, int pageSize);
 
-    JobResponse getJobById(Long jobId);
+    JobResponse getJobById(String jobId);
 }
