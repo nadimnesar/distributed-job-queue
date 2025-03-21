@@ -1,10 +1,10 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
-import com.nadimnesar.jobqueue.producer.dto.response.JobResponse;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
+import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
+import com.nadimnesar.jobqueue.producer.dto.response.JobResponse;
 import com.nadimnesar.jobqueue.producer.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -48,19 +48,7 @@ public class JobServiceImpl implements JobService {
         List<JobEntity> jobEntityEntities = jobRepository.findAll(pageable).getContent();
 
         return jobEntityEntities.stream()
-                .map(entity -> JobResponse.builder()
-                        .id(entity.getId())
-                        .priority(entity.getPriority())
-                        .status(entity.getStatus())
-                        .type(entity.getType())
-                        .result(entity.getResult())
-                        .errorMessage(entity.getErrorMessage())
-                        .currentProgress(entity.getCurrentProgress())
-                        .currentRetryAttemptCount(entity.getCurrentRetryAttemptCount())
-                        .maxRetryAttemptCount(entity.getMaxRetryAttemptCount())
-                        .startedAt(entity.getStartedAt())
-                        .completedAt(entity.getCompletedAt())
-                        .build())
+                .map(this::convertToJobResponse)
                 .collect(Collectors.toList());
     }
 
@@ -71,7 +59,11 @@ public class JobServiceImpl implements JobService {
         UUID id = UUID.fromString(jobId);
         Optional<JobEntity> job = jobRepository.findById(id);
 
-        return job.map(jobEntity -> JobResponse.builder()
+        return job.map(this::convertToJobResponse).orElse(null);
+    }
+
+    private JobResponse convertToJobResponse(JobEntity jobEntity) {
+        return JobResponse.builder()
                 .id(jobEntity.getId())
                 .priority(jobEntity.getPriority())
                 .status(jobEntity.getStatus())
@@ -83,6 +75,6 @@ public class JobServiceImpl implements JobService {
                 .maxRetryAttemptCount(jobEntity.getMaxRetryAttemptCount())
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())
-                .build()).orElse(null);
+                .build();
     }
 }
