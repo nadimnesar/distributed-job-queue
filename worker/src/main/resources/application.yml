@@ -12,7 +12,7 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
   data:
     redis:
       host: ${SPRING_REDIS_HOST:localhost}
