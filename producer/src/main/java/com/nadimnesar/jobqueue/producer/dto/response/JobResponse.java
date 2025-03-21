@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.common.dto.response;
+package com.nadimnesar.jobqueue.producer.dto.response;
 
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;

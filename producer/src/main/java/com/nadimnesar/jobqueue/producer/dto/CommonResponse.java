@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.common.dto;
+package com.nadimnesar.jobqueue.producer.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
