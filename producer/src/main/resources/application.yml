@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SERVER_NAME:producer}
+    name: producer
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:6000/job_queue_db}
     username: postgres
