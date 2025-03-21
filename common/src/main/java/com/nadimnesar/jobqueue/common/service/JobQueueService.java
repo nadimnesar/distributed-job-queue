@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.producer.service;
+package com.nadimnesar.jobqueue.common.service;
 
 public interface JobQueueService {
     void enqueueJob(String jobId);

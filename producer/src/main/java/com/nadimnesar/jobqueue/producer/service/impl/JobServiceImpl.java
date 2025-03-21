@@ -4,7 +4,7 @@ import com.nadimnesar.jobqueue.common.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.common.dto.response.JobResponse;
 import com.nadimnesar.jobqueue.producer.entity.JobEntity;
 import com.nadimnesar.jobqueue.producer.repository.JobRepository;
-import com.nadimnesar.jobqueue.producer.service.JobQueueService;
+import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.producer.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

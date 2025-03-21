@@ -1,7 +1,7 @@
-package com.nadimnesar.jobqueue.producer.service.impl;
+package com.nadimnesar.jobqueue.common.service.impl;
 
 import com.nadimnesar.jobqueue.common.constant.RedisConstant;
-import com.nadimnesar.jobqueue.producer.service.JobQueueService;
+import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
