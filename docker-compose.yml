@@ -3,6 +3,10 @@ x-service-defaults: &service-defaults
   networks:
     - app-network
 
+x-common-env: &common-env
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_queue_db
+    SPRING_REDIS_HOST: redis_queue
+
 services:
   nginx:
     <<: *service-defaults
@@ -24,8 +28,8 @@ services:
       context: ./producer
       dockerfile: Dockerfile
     environment:
+      <<: *common-env
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_queue_db
     deploy:
       replicas: 3
 
@@ -35,8 +39,8 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     environment:
+      <<: *common-env
       SERVER_PORT: 8085
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_queue_db
     deploy:
       replicas: 5
 
