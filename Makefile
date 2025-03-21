@@ -4,10 +4,7 @@
 # -----------------------------------------------------
 
 # Start everything: build the application, set up database, apply migrations, and start Docker containers
-up: build db db-up docker-up
-
-# Update the system: rebuild application, stop containers, reset database, apply migrations, and restart containers
-update: build down db db-up docker-up
+up: build down db db-up docker-up
 
 # Stop all running containers and remove orphaned containers
 down:
