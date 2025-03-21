@@ -9,5 +9,5 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories("com.nadimnesar.jobqueue.common.repository")
 @EntityScan("com.nadimnesar.jobqueue.common.entity")
 @EnableJpaAuditing
-public class CommonConfig {
+public class JpaConfig {
 }
