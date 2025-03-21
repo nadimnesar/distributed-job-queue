@@ -12,7 +12,7 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
   liquibase:
     enabled: false
     change-log: src/main/resources/db/master.json

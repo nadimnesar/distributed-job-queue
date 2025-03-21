@@ -1,9 +1,9 @@
-package com.nadimnesar.jobqueue.producer.entity;
+package com.nadimnesar.jobqueue.common.entity;
 
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
-import com.nadimnesar.jobqueue.producer.entity.base.BaseEntity;
+import com.nadimnesar.jobqueue.common.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

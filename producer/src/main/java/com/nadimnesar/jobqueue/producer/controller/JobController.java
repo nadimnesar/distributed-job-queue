@@ -1,7 +1,7 @@
 package com.nadimnesar.jobqueue.producer.controller;
 
-import com.nadimnesar.jobqueue.common.dto.CommonResponse;
-import com.nadimnesar.jobqueue.common.dto.request.JobRequest;
+import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
+import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.producer.service.JobService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

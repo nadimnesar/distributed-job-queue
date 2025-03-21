@@ -1,6 +1,6 @@
-package com.nadimnesar.jobqueue.producer.repository;
+package com.nadimnesar.jobqueue.common.repository;
 
-import com.nadimnesar.jobqueue.producer.entity.JobEntity;
+import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

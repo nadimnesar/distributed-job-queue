@@ -1,8 +1,8 @@
 package com.nadimnesar.jobqueue.producer.service;
 
-import com.nadimnesar.jobqueue.common.dto.request.JobRequest;
-import com.nadimnesar.jobqueue.common.dto.response.JobResponse;
-import com.nadimnesar.jobqueue.producer.entity.JobEntity;
+import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
+import com.nadimnesar.jobqueue.producer.dto.response.JobResponse;
+import com.nadimnesar.jobqueue.common.entity.JobEntity;
 
 import java.util.List;
 

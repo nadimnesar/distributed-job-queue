@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.producer.entity.base;
+package com.nadimnesar.jobqueue.common.entity.base;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

@@ -3,6 +3,9 @@
 # Build and start everything
 up: build docker-down data-up migrate docker-up
 
+# Up for local development
+up-dev: docker-down data-up migrate
+
 # Build and package the application (skipping tests)
 build:
 	mvn clean install -DskipTests
