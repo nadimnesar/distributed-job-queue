@@ -16,3 +16,7 @@ spring:
   liquibase:
     enabled: false
     change-log: src/main/resources/db/master.json
+  data:
+    redis:
+      host: localhost
+      port: 6379

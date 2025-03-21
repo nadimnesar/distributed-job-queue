@@ -4,6 +4,7 @@ import com.nadimnesar.jobqueue.common.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.common.dto.response.JobResponse;
 import com.nadimnesar.jobqueue.producer.entity.JobEntity;
 import com.nadimnesar.jobqueue.producer.repository.JobRepository;
+import com.nadimnesar.jobqueue.producer.service.JobQueueService;
 import com.nadimnesar.jobqueue.producer.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ public class JobServiceImpl implements JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
 
     private final JobRepository jobRepository;
+    private final JobQueueService jobQueueService;
 
     public JobEntity submitJob(JobRequest jobRequest) {
         logger.info("JobServiceImpl|Submitting job {}", jobRequest);
@@ -33,9 +35,10 @@ public class JobServiceImpl implements JobService {
                 .maxRetryAttemptCount(jobRequest.getMaxRetryAttemptCount())
                 .build();
 
-        jobRepository.save(jobEntity);
+        JobEntity savedJob = jobRepository.save(jobEntity);
+        jobQueueService.enqueueJob(savedJob.getId().toString());
 
-        return jobEntity;
+        return savedJob;
     }
 
     public List<JobResponse> getAllJobs(int pageNumber, int pageSize) {
