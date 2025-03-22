@@ -41,7 +41,6 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 return;
             case JobStatus.COMPLETED:
                 logger.info("JobProcessorService|Job with ID: {} already completed", jobId);
-                handleCompletedJob(job);
                 return;
             default:
                 break;

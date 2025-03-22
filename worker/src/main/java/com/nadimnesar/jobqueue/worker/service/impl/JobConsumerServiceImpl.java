@@ -23,6 +23,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     private final JobProcessorService jobProcessorService;
     private final ExecutorService virtualThreadParTaskExecutor;
 
+    @Override
     @Scheduled(fixedDelay = 10000) // Poll every 10 second
     public void consumeJobs() {
         logger.info("JobConsumerService|Starting job consumption cycle");
