@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+
 @Service
 @RequiredArgsConstructor
 public class JobConsumerServiceImpl implements JobConsumerService {
@@ -19,6 +22,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     private final RedisQueueService redisQueueService;
     private final JobQueueService jobQueueService;
     private final JobProcessorService jobProcessorService;
+    private final ExecutorService virtualThreadParTaskExecutor;
 
     @Scheduled(fixedDelay = 10000) // Poll every 10 second
     public void consumeJobs() {
@@ -26,16 +30,21 @@ public class JobConsumerServiceImpl implements JobConsumerService {
 
         String jobId = jobQueueService.dequeueJob();
         if (jobId == null) {
-            logger.error("JobConsumerService|No jobs found in the queue");
+            logger.info("JobConsumerService|No jobs found in the queue");
             return;
         }
 
-        try {
-            jobProcessorService.processJob(jobId);
-        } catch (Exception e) {
-            logger.error("JobConsumerService|Error processing job {}: {}", jobId, e.getMessage(), e);
-        } finally {
-            redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
-        }
+        CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
+            try {
+                jobProcessorService.processJob(jobId);
+            } catch (Exception e) {
+                logger.error("JobConsumerService|Error processing job {}: {}", jobId, e.getMessage(), e);
+            } finally {
+                redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
+            }
+        }, virtualThreadParTaskExecutor).exceptionally(throwable -> {
+            logger.error("JobConsumerService|Error processing job {}: {}", jobId, throwable.getMessage(), throwable);
+            return null;
+        });
     }
 }

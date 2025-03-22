@@ -3,7 +3,6 @@ package com.nadimnesar.jobqueue.common.service.impl;
 import com.nadimnesar.jobqueue.common.constant.RedisConstant;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
-import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import lombok.RequiredArgsConstructor;
@@ -11,22 +10,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class JobQueueServiceImpl implements JobQueueService {
     private static final Logger logger = LoggerFactory.getLogger(JobQueueServiceImpl.class);
 
     private final RedisQueueService redisQueueService;
-    private final JobRepository jobRepository;
 
     @Override
-    public void enqueueJob(String jobId) {
+    public void enqueueJob(JobEntity job) {
+        var jobId = job.getId().toString();
         logger.info("RedisJobQueueServiceImpl|Enqueueing job with ID: {}", jobId);
-
-        JobEntity job = jobRepository.findById(UUID.fromString(jobId))
-                .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
 
         String queueKey = getQueueKeyByPriority(job.getPriority());
         redisQueueService.enqueue(queueKey, jobId);
@@ -73,7 +67,6 @@ public class JobQueueServiceImpl implements JobQueueService {
     public void moveToDeadLetterQueue(String jobId) {
         logger.info("JobQueueServiceImpl|Moving job {} to dead letter queue", jobId);
         redisQueueService.enqueue(RedisConstant.DEAD_LETTER_QUEUE_KEY, jobId);
-        redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
     }
 
     private String getQueueKeyByPriority(JobPriority priority) {

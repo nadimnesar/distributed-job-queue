@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +28,7 @@ public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
     private final JobQueueService jobQueueService;
 
+    @Transactional
     public JobEntity submitJob(JobRequest jobRequest) {
         logger.info("JobServiceImpl|Submitting job {}", jobRequest);
 
@@ -36,7 +40,14 @@ public class JobServiceImpl implements JobService {
                 .build();
 
         JobEntity savedJob = jobRepository.save(jobEntity);
-        jobQueueService.enqueueJob(savedJob.getId().toString());
+
+        // Enqueue job only after transaction commits
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                jobQueueService.enqueueJob(savedJob);
+            }
+        });
 
         return savedJob;
     }
@@ -56,8 +67,7 @@ public class JobServiceImpl implements JobService {
     public JobResponse getJobById(String jobId) {
         logger.info("JobServiceImpl|Getting job by id: {}", jobId);
 
-        UUID id = UUID.fromString(jobId);
-        Optional<JobEntity> job = jobRepository.findById(id);
+        Optional<JobEntity> job = jobRepository.findById(UUID.fromString(jobId));
 
         return job.map(this::convertToJobResponse).orElse(null);
     }
