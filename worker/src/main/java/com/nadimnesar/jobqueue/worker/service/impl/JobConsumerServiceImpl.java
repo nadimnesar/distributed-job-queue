@@ -43,7 +43,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
                 redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
             }
         }, virtualThreadParTaskExecutor).exceptionally(throwable -> {
-            logger.error("JobConsumerService|Processing job {}, error: {}", jobId, throwable.getMessage(), throwable);
+            logger.error("JobConsumerService|Error processing job {}: {}", jobId, throwable.getMessage(), throwable);
             return null;
         });
     }

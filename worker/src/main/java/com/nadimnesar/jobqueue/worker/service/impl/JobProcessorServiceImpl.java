@@ -23,6 +23,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
     private final JobQueueService jobQueueService;
     private final JobRepository jobRepository;
 
+    @Override
     public void processJob(String jobId) {
         logger.info("JobProcessorService|Processing job with id: {}", jobId);
 
@@ -33,15 +34,17 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         }
 
         var job = optionalJob.get();
-        if (job.getStatus() == JobStatus.CANCELED) {
-            logger.info("JobProcessorService|Job with ID: {} already canceled, no needs to process it", jobId);
-            return;
-        }
 
-        if (job.getStatus() == JobStatus.COMPLETED) {
-            logger.info("JobProcessorService|Job with ID: {} already completed", jobId);
-            handleCompletedJob(job);
-            return;
+        switch (job.getStatus()) {
+            case JobStatus.CANCELED:
+                logger.info("JobProcessorService|Job with ID: {} already canceled, no needs to process it", jobId);
+                return;
+            case JobStatus.COMPLETED:
+                logger.info("JobProcessorService|Job with ID: {} already completed", jobId);
+                handleCompletedJob(job);
+                return;
+            default:
+                break;
         }
 
         if (job.getCurrentRetryAttemptCount() >= job.getMaxRetryAttemptCount()) {
@@ -51,25 +54,27 @@ public class JobProcessorServiceImpl implements JobProcessorService {
             return;
         }
 
-        job.setStatus(JobStatus.PROCESSING);
-        job.setStartedAt(LocalDateTime.now());
-        job.setCurrentRetryAttemptCount(job.getCurrentRetryAttemptCount() + 1);
-        jobRepository.save(job);
+        updateJobAsProcessing(job);
 
-        switch (job.getType()) {
-            case JobType.EMAIL_SENDING:
-                processEmailSendingJob(job);
-                break;
-            case JobType.PAYMENT_PROCESSING:
-                processPaymentProcessingJob(job);
-                break;
-            default:
-                handleFailedJob(job, "Job type not supported");
-                return;
+        try {
+            switch (job.getType()) {
+                case JobType.EMAIL_SENDING:
+                    processEmailSendingJob(job);
+                    break;
+                case JobType.PAYMENT_PROCESSING:
+                    processPaymentProcessingJob(job);
+                    break;
+                default:
+                    handleFailedJob(job, "Job type not supported");
+                    return;
+            }
+
+            handleCompletedJob(job);
+            logger.info("JobProcessorService|Successfully processed job with ID: {}", jobId);
+        } catch (Exception e) {
+            handleFailedJob(job, e.getMessage());
+            logger.error("JobProcessorService|Failed to process job with ID: {}", jobId, e);
         }
-
-        handleCompletedJob(job);
-        logger.info("JobProcessorService|Successfully processed job with ID: {}", jobId);
     }
 
     private void processEmailSendingJob(JobEntity job) {
@@ -81,12 +86,13 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
             for (int step = 1; step <= totalSteps; step++) {
                 int progress = (step * 100) / totalSteps;
-                job.setCurrentProgress(progress);
-                jobRepository.save(job);
+
+                updateJobProgress(job, progress);
 
                 logger.info("JobProcessorService|Email sending job id {}, progress: {}%",
                         job.getId().toString(),
                         progress);
+
                 Thread.sleep(waitTimeMs);
             }
         } catch (InterruptedException e) {
@@ -104,18 +110,31 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
             for (int step = 1; step <= totalSteps; step++) {
                 int progress = (step * 100) / totalSteps;
-                job.setCurrentProgress(progress);
-                jobRepository.save(job);
+
+                updateJobProgress(job, progress);
 
                 logger.info("JobProcessorService|Payment processing job id {}, progress: {}%",
                         job.getId().toString(),
                         progress);
+
                 Thread.sleep(waitTimeMs);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Payment processing job was interrupted: " + e.getMessage());
         }
+    }
+
+    private void updateJobProgress(JobEntity job, int progress) {
+        job.setCurrentProgress(progress);
+        jobRepository.save(job);
+    }
+
+    private void updateJobAsProcessing(JobEntity job) {
+        job.setStatus(JobStatus.PROCESSING);
+        job.setStartedAt(LocalDateTime.now());
+        job.setCurrentRetryAttemptCount(job.getCurrentRetryAttemptCount() + 1);
+        jobRepository.save(job);
     }
 
     private void handleFailedJob(JobEntity job, String reason) {
@@ -128,7 +147,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
             job.setStartedAt(LocalDateTime.now());
         }
 
-        job.setErrorMessage(reason);
+        job.setErrorMessage(reason != null ? reason : "Unknown error");
 
         jobRepository.save(job);
     }
@@ -137,7 +156,10 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         job.setStatus(JobStatus.COMPLETED);
         job.setResult("Job completed successfully");
         job.setCurrentProgress(100);
-        job.setCompletedAt(LocalDateTime.now());
+
+        if (job.getCompletedAt() == null) {
+            job.setCompletedAt(LocalDateTime.now());
+        }
 
         if (job.getStartedAt() == null) {
             job.setStartedAt(LocalDateTime.now());

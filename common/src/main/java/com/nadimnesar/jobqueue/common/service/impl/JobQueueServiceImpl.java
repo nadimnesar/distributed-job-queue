@@ -67,7 +67,6 @@ public class JobQueueServiceImpl implements JobQueueService {
     public void moveToDeadLetterQueue(String jobId) {
         logger.info("JobQueueServiceImpl|Moving job {} to dead letter queue", jobId);
         redisQueueService.enqueue(RedisConstant.DEAD_LETTER_QUEUE_KEY, jobId);
-        redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
     }
 
     private String getQueueKeyByPriority(JobPriority priority) {
