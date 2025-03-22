@@ -5,7 +5,6 @@ import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
-import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import com.nadimnesar.jobqueue.worker.service.JobProcessorService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -22,7 +21,6 @@ public class JobProcessorServiceImpl implements JobProcessorService {
     private static final Logger logger = LoggerFactory.getLogger(JobProcessorServiceImpl.class);
 
     private final JobQueueService jobQueueService;
-    private final RedisQueueService redisQueueService;
     private final JobRepository jobRepository;
 
     public void processJob(String jobId) {
@@ -85,7 +83,10 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 int progress = (step * 100) / totalSteps;
                 job.setCurrentProgress(progress);
                 jobRepository.save(job);
-                logger.info("JobProcessorService|Email sending job progress: {}%", progress);
+
+                logger.info("JobProcessorService|Email sending job id {}, progress: {}%",
+                        job.getId().toString(),
+                        progress);
                 Thread.sleep(waitTimeMs);
             }
         } catch (InterruptedException e) {
@@ -105,7 +106,10 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 int progress = (step * 100) / totalSteps;
                 job.setCurrentProgress(progress);
                 jobRepository.save(job);
-                logger.info("JobProcessorService|Payment processing job progress: {}%", progress);
+
+                logger.info("JobProcessorService|Payment processing job id {}, progress: {}%",
+                        job.getId().toString(),
+                        progress);
                 Thread.sleep(waitTimeMs);
             }
         } catch (InterruptedException e) {
