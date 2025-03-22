@@ -18,7 +18,6 @@
         <dependency>
             <groupId>com.nadimnesar.jobqueue</groupId>
             <artifactId>common</artifactId>
-            <version>${common.module.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

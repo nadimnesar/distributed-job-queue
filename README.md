@@ -29,7 +29,7 @@ dependencies and failures gracefully.
 ### Technical Specifications
 
 * **Backend**: Spring Boot
-* **Queue & State Management:** Redis
+* **Queue:** Redis
 * **Load Balancer:** Nginx
 * **Database:** Postgres
 * **Database Migration:** Liquibase
@@ -40,7 +40,9 @@ dependencies and failures gracefully.
 
 ## Known Issues
 
-* The current system design does not support horizontal scaling based on queue length. However, manual scaling is
-  possible using Nginx. To address this, Kubernetes needs to be applied.
+* The current system design does not support horizontal scaling based on queue length. However, scaling is possible by
+  modifying the Docker Compose file.
 * The current implementation does not support dependency management.
 * PostgreSQL and Redis are single points of failure. The solution is to use clustering.
+* The job is not efficiently distributed across multiple worker nodes. Currently, whichever worker node consumes the job
+  first processes it.

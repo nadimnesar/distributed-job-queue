@@ -4,7 +4,7 @@
 up: build docker-down data-up migrate docker-up
 
 # Up for local development
-up-dev: docker-down data-up migrate
+up-local: docker-down data-up migrate
 
 # Build and package the application (skipping tests)
 build:
