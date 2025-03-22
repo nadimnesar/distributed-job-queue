@@ -1,6 +1,5 @@
 package com.nadimnesar.jobqueue.worker.service.impl;
 
-import com.nadimnesar.jobqueue.common.constant.RedisConstant;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import com.nadimnesar.jobqueue.worker.service.JobConsumerService;
@@ -40,7 +39,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
             } catch (Exception e) {
                 logger.error("JobConsumerService|Error processing job {}: {}", jobId, e.getMessage(), e);
             } finally {
-                redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
+                redisQueueService.releaseLock(jobId);
             }
         }, virtualThreadParTaskExecutor).exceptionally(throwable -> {
             logger.error("JobConsumerService|Error processing job {}: {}", jobId, throwable.getMessage(), throwable);

@@ -44,11 +44,8 @@ public class JobQueueServiceImpl implements JobQueueService {
 
         if (jobId != null) {
 
-            // Trying to lock till 3 minutes
-            boolean lockStatus = redisQueueService.acquireLock(
-                    RedisConstant.JOB_PROCESSING_STATE + jobId,
-                    180000
-            );
+            // This job is locked till 3 minutes
+            boolean lockStatus = redisQueueService.acquireLock(jobId, 180000);
 
             if (!lockStatus) {
                 logger.info("JobQueueServiceImpl|Job {} is already being processed by another worker", jobId);

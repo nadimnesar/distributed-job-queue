@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.common.service.impl;
 
+import com.nadimnesar.jobqueue.common.constant.RedisConstant;
 import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -30,7 +31,13 @@ public class RedisQueueServiceImpl implements RedisQueueService {
     public Boolean acquireLock(String lockKey, long expireTime) {
         logger.info("Acquiring lock with key: {}, for {} milliseconds", lockKey, expireTime);
 
-        var success = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", expireTime, TimeUnit.MILLISECONDS);
+        var success = redisTemplate.opsForValue().setIfAbsent(
+                RedisConstant.REDIS_LOCK_PREFIX + lockKey,
+                "1",
+                expireTime,
+                TimeUnit.MILLISECONDS
+        );
+
         if (success != null && success) {
             logger.info("Lock acquired with key: {}", lockKey);
         } else {
@@ -43,6 +50,6 @@ public class RedisQueueServiceImpl implements RedisQueueService {
     @Override
     public void releaseLock(String lockKey) {
         logger.info("Releasing lock with key: {}", lockKey);
-        redisTemplate.delete(lockKey);
+        redisTemplate.delete(RedisConstant.REDIS_LOCK_PREFIX + lockKey);
     }
 }
