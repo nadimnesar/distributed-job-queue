@@ -129,8 +129,10 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         jobRepository.save(job);
     }
 
+    //In this implementation, job isn't resuming from the last progress, it's starting from 0% again.
     private void updateJobAsProcessing(JobEntity job) {
         job.setStatus(JobStatus.PROCESSING);
+        job.setCurrentProgress(0);
         job.setStartedAt(LocalDateTime.now());
         job.setCurrentRetryAttemptCount(job.getCurrentRetryAttemptCount() + 1);
         jobRepository.save(job);
