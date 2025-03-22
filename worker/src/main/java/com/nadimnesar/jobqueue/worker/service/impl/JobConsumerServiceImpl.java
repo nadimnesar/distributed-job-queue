@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +22,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     private final RedisQueueService redisQueueService;
     private final JobQueueService jobQueueService;
     private final JobProcessorService jobProcessorService;
+    private final ExecutorService virtualThreadParTaskExecutor;
 
     @Scheduled(fixedDelay = 10000) // Poll every 10 second
     public void consumeJobs() {
@@ -41,6 +42,9 @@ public class JobConsumerServiceImpl implements JobConsumerService {
             } finally {
                 redisQueueService.releaseLock(RedisConstant.JOB_PROCESSING_STATE + jobId);
             }
-        }, Executors.newVirtualThreadPerTaskExecutor());
+        }, virtualThreadParTaskExecutor).exceptionally(throwable -> {
+            logger.error("JobConsumerService|Processing job {}, error: {}", jobId, throwable.getMessage(), throwable);
+            return null;
+        });
     }
 }
