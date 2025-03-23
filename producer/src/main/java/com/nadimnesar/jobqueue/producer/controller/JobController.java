@@ -34,6 +34,12 @@ public class JobController {
                 .build());
     }
 
+    @PostMapping("/cancel")
+    public ResponseEntity<CommonResponse> cancelJob(@RequestParam String id) {
+        logger.info("JobController|Received cancel job request with ID: {}", id);
+        return ResponseEntity.ok().body(jobService.cancelJob(id));
+    }
+
     @GetMapping("/get-all")
     public ResponseEntity<CommonResponse> getJobs(@RequestParam int pageNumber, @RequestParam int pageSize) {
         logger.info("JobController|Received get job request, pageNumber: {}, pageSize: {}", pageNumber, pageSize);

@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.producer.service;
 
+import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.producer.dto.response.JobResponse;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
@@ -12,4 +13,6 @@ public interface JobService {
     List<JobResponse> getAllJobs(int pageNumber, int pageSize);
 
     JobResponse getJobById(String jobId);
+
+    CommonResponse cancelJob(String jobId);
 }

@@ -20,7 +20,7 @@ public class JobRetryServiceImpl implements JobRetryService {
     private final JobRepository jobRepository;
 
     @Override
-    @Scheduled(fixedRate = 60000) // every 1 minute
+    @Scheduled(fixedRate = 180000) // every 3 minute
     @Transactional
     public void retryJobs() {
         logger.info("JobRetryServiceImpl|Starting job retry process");
