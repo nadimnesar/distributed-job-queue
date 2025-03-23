@@ -35,9 +35,9 @@ public class JobController {
     }
 
     @PostMapping("/cancel")
-    public ResponseEntity<CommonResponse> cancelJob(@RequestParam String jobId) {
-        logger.info("JobController|Received cancel job request: {}", jobId);
-        return ResponseEntity.ok().body(jobService.cancelJob(jobId));
+    public ResponseEntity<CommonResponse> cancelJob(@RequestParam String id) {
+        logger.info("JobController|Received cancel job request with ID: {}", id);
+        return ResponseEntity.ok().body(jobService.cancelJob(id));
     }
 
     @GetMapping("/get-all")
