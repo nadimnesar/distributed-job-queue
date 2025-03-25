@@ -1,4 +1,4 @@
-# Distributed Job Queue System with Redis
+# Distributed Job Queue System with Redis and Spring Boot
 
 ## Problem Statement
 
@@ -13,7 +13,7 @@ dependencies and failures gracefully.
     - Deploy multiple worker nodes that can run on different machines.
     - Support horizontal scaling based on queue length.
 * **Job Execution & Tracking:**
-    - Maintain job statuses: Pending, Processing, Completed, Failed.
+    - Maintain job statuses: Pending, Processing, Completed, Failed, Canceled.
     - Implement job progress tracking.
 * **Failure Handling & Retry Mechanism:**
     - Detect and handle job failures.
@@ -44,5 +44,5 @@ dependencies and failures gracefully.
   modifying the Docker Compose file.
 * The current implementation does not support dependency management.
 * PostgreSQL and Redis are single points of failure. The solution is to use clustering.
-* The job is not efficiently distributed across multiple worker nodes. Currently, whichever worker node consumes the job
-  first processes it.
+* The job is not efficiently distributed across multiple worker nodes. Currently, workers race for jobs so that the
+  fastest worker gets the next available job.
