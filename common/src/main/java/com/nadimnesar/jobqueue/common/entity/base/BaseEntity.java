@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.common.entity.base;
 
+import com.nadimnesar.jobqueue.common.constant.DbConstant;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
@@ -27,15 +28,21 @@ public abstract class BaseEntity {
     @Column(nullable = false,
             updatable = false,
             unique = true,
-            columnDefinition = "UUID")
+            columnDefinition = "UUID",
+            name = DbConstant.BaseEntity.ID)
     @IDGenerator
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false,
+            updatable = false,
+            columnDefinition = "TIMESTAMP",
+            name = DbConstant.BaseEntity.CREATED_AT)
     @CreatedDate
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(nullable = false,
+            columnDefinition = "TIMESTAMP",
+            name = DbConstant.BaseEntity.UPDATED_AT)
     @LastModifiedDate
     private LocalDateTime updatedAt;
 }

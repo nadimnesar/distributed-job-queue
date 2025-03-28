@@ -24,4 +24,11 @@ public class CommonResponse {
                 .code(HttpStatus.BAD_REQUEST.value())
                 .build();
     }
+
+    public static CommonResponse notFound(String message) {
+        return CommonResponse.builder()
+                .message(message)
+                .code(HttpStatus.NOT_FOUND.value())
+                .build();
+    }
 }

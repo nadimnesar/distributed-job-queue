@@ -25,13 +25,18 @@ public class JobController {
     public ResponseEntity<CommonResponse> submitJob(@RequestBody JobRequest jobRequest) {
         logger.info("JobController|Received submit job request: {}", jobRequest);
 
-        var response = jobService.submitJob(jobRequest);
+        try {
+            var response = jobService.submitJob(jobRequest);
 
-        return ResponseEntity.ok().body(CommonResponse.builder()
-                .message("Job is created successfully.")
-                .data(response)
-                .code(HttpStatus.CREATED.value())
-                .build());
+            return ResponseEntity.ok().body(CommonResponse.builder()
+                    .message("Job is created successfully.")
+                    .data(response)
+                    .code(HttpStatus.CREATED.value())
+                    .build());
+        } catch (Exception e) {
+            logger.error("JobController|Error occurred while creating job: {}", e.getMessage());
+            return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
+        }
     }
 
     @PostMapping("/cancel")
@@ -47,10 +52,7 @@ public class JobController {
         var response = jobService.getAllJobs(pageNumber, pageSize);
 
         if (response.isEmpty()) {
-            return ResponseEntity.ok().body(CommonResponse.builder()
-                    .message("No jobs found.")
-                    .code(HttpStatus.NOT_FOUND.value())
-                    .build());
+            return ResponseEntity.ok().body(CommonResponse.notFound("No jobs found."));
         } else {
             return ResponseEntity.ok().body(CommonResponse.builder()
                     .data(response)
@@ -64,15 +66,17 @@ public class JobController {
 
         var response = jobService.getJobById(id);
 
-        if (response == null) {
-            return ResponseEntity.ok().body(CommonResponse.builder()
-                    .message("No job found with given id.")
-                    .code(HttpStatus.NOT_FOUND.value())
-                    .build());
-        } else {
-            return ResponseEntity.ok().body(CommonResponse.builder()
-                    .data(response)
-                    .build());
+        try {
+            if (response == null) {
+                return ResponseEntity.ok().body(CommonResponse.notFound("No job found with given id."));
+            } else {
+                return ResponseEntity.ok().body(CommonResponse.builder()
+                        .data(response)
+                        .build());
+            }
+        } catch (Exception e) {
+            logger.error("JobController|Error occurred while getting job: {}", e.getMessage());
+            return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 }
