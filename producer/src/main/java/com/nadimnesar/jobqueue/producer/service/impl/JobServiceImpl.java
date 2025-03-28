@@ -36,7 +36,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     @Transactional
-    public JobEntity submitJob(JobRequest jobRequest) {
+    public CommonResponse submitJob(JobRequest jobRequest) {
         logger.info("JobServiceImpl|Submitting job {}", jobRequest);
 
         if (jobRequest.getDependencies() != null && !jobRequest.getDependencies().isEmpty()) {
@@ -78,35 +78,50 @@ public class JobServiceImpl implements JobService {
             }
         });
 
-        return savedJob;
+        return CommonResponse.builder()
+                .message("Job is created successfully.")
+                .data(savedJob)
+                .code(HttpStatus.CREATED.value())
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<JobResponse> getAllJobs(int pageNumber, int pageSize) {
+    public CommonResponse getAllJobs(int pageNumber, int pageSize) {
         logger.info("JobServiceImpl|Getting all jobs by page number: {}, page size: {}", pageNumber, pageSize);
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
         List<JobEntity> jobEntities = jobRepository.findAll(pageable).getContent();
 
-        return jobEntities.stream()
-                .map(this::convertToJobResponse)
-                .collect(Collectors.toList());
+        var jobResponses = jobEntities.stream().map(this::convertToJobResponse).toList();
+
+        if (jobResponses.isEmpty()) {
+            logger.info("JobServiceImpl|No jobs found");
+            return CommonResponse.notFound("No jobs found");
+        }
+
+        return CommonResponse.builder()
+                .data(jobResponses)
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public JobResponse getJobById(String jobId) {
+    public CommonResponse getJobById(String jobId) {
         logger.info("JobServiceImpl|Getting job by id: {}", jobId);
 
-        try {
-            UUID uuid = UUID.fromString(jobId);
-            Optional<JobEntity> job = jobRepository.findById(uuid);
-            return job.map(this::convertToJobResponse).orElse(null);
-        } catch (IllegalArgumentException e) {
-            logger.error("JobServiceImpl|Invalid job ID format: {}", jobId);
-            return null;
+        Optional<JobEntity> job = jobRepository.findById(UUID.fromString(jobId));
+
+        if (job.isEmpty()) {
+            logger.info("JobServiceImpl|No job found with given id: {}", jobId);
+            return CommonResponse.notFound("No job found with given id.");
         }
+
+        var jobResponse = job.map(this::convertToJobResponse);
+
+        return CommonResponse.builder()
+                .data(jobResponse)
+                .build();
     }
 
     @Override
