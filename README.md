@@ -42,7 +42,6 @@ dependencies and failures gracefully.
 
 * The current system design does not support horizontal scaling based on queue length. However, scaling is possible by
   modifying the Docker Compose file.
-* The current implementation does not support dependency management.
-* PostgreSQL and Redis are single points of failure. The solution is to use clustering.
 * The job is not efficiently distributed across multiple worker nodes. Currently, workers race for jobs so that the
   fastest worker gets the next available job.
+* PostgreSQL and Redis are single points of failure. The solution is to use clustering.

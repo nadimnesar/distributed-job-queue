@@ -1,3 +1,4 @@
+-- nadimnesar-001.1
 CREATE TABLE job
 (
     id                          UUID PRIMARY KEY,
@@ -5,7 +6,7 @@ CREATE TABLE job
     updated_at                  TIMESTAMP   NOT NULL,
     priority                    VARCHAR(50) NOT NULL,
     status                      VARCHAR(50) NOT NULL,
-    type                        VARCHAR(50),
+    type                        VARCHAR(50) NOT NULL,
     payload                     TEXT        NOT NULL,
     result                      TEXT,
     error_message               TEXT,
@@ -14,4 +15,17 @@ CREATE TABLE job
     max_retry_attempt_count     INT         NOT NULL,
     started_at                  TIMESTAMP,
     completed_at                TIMESTAMP
+);
+
+-- nadimnesar-001.2
+CREATE TABLE job_dependency
+(
+    id            UUID PRIMARY KEY,
+    created_at    TIMESTAMP NOT NULL,
+    updated_at    TIMESTAMP NOT NULL,
+    job_id        UUID      NOT NULL,
+    dependency_id UUID      NOT NULL,
+    FOREIGN KEY (job_id) REFERENCES job (id),
+    FOREIGN KEY (dependency_id) REFERENCES job (id),
+    CONSTRAINT unique_job_dependency UNIQUE (job_id, dependency_id)
 );

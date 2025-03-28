@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -16,6 +17,8 @@ public class JobResponse {
     private JobPriority priority;
     private JobStatus status;
     private JobType type;
+    private Set<UUID> dependents;
+    private Set<UUID> dependencies;
     private String result;
     private String errorMessage;
     private Integer currentProgress;
