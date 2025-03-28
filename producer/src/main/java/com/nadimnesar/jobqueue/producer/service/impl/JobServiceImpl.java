@@ -95,10 +95,6 @@ public class JobServiceImpl implements JobService {
                     logger.info("JobServiceImpl|Job cancellation failed, job with ID: {} is already completed", jobId);
                     yield CommonResponse.badRequest("Job is already completed");
                 }
-                case JobStatus.PROCESSING -> {
-                    logger.info("JobServiceImpl|Job cancellation failed, job with ID: {} is in processing state", jobId);
-                    yield CommonResponse.badRequest("Job is in processing state");
-                }
                 default -> {
                     try {
                         cancelJob(job);
