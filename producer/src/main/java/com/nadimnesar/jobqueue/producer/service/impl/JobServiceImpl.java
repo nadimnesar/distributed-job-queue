@@ -152,9 +152,7 @@ public class JobServiceImpl implements JobService {
         jobEntity.setStatus(JobStatus.CANCELED);
         jobRepository.save(jobEntity);
 
-        jobDependencyService.getDependents(jobEntity.getId()).forEach(dependentId -> {
-            jobDependencyService.removeDependency(dependentId, jobEntity.getId());
-        });
+        jobDependencyService.informDependents(jobEntity.getId());
 
         logger.info("JobServiceImpl|Job cancellation completed, job with ID: {}", jobEntity.getId());
     }

@@ -4,6 +4,7 @@ import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
+import com.nadimnesar.jobqueue.common.service.JobDependencyService;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.worker.service.JobProcessorService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
     private final JobQueueService jobQueueService;
     private final JobRepository jobRepository;
+    private final JobDependencyService jobDependencyService;
 
     @Override
     public void processJob(String jobId) {
@@ -45,6 +47,12 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 return;
             default:
                 break;
+        }
+
+        if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
+            logger.info("JobProcessorService|Job with ID: {} has dependencies, waiting for them to complete", jobId);
+            jobQueueService.enqueueJob(job);
+            return;
         }
 
         if (job.getCurrentRetryAttemptCount() >= job.getMaxRetryAttemptCount() && !checkCanceled(job.getId())) {
@@ -180,6 +188,8 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         }
 
         job.setErrorMessage(null);
+
+        jobDependencyService.informDependents(job.getId());
 
         jobRepository.save(job);
     }

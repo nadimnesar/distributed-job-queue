@@ -1,6 +1,9 @@
 package com.nadimnesar.jobqueue.worker.service.impl;
 
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.repository.JobDependencyRepository;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
+import com.nadimnesar.jobqueue.common.service.JobDependencyService;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.worker.service.JobRetryService;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +21,16 @@ public class JobRetryServiceImpl implements JobRetryService {
 
     private final JobQueueService jobQueueService;
     private final JobRepository jobRepository;
+    private final JobDependencyRepository jobDependencyRepository;
+    private final JobDependencyService jobDependencyService;
 
     @Override
     @Scheduled(cron = "${schedule.cron.retry}")
     @Transactional
     public void retryJobs() {
         logger.info("JobRetryServiceImpl|Starting job retry process");
+
+        removeOrphanDependencies();
 
         try {
             var retryableJobs = jobRepository.findJobsToRetry();
@@ -50,5 +57,17 @@ public class JobRetryServiceImpl implements JobRetryService {
         } catch (Exception e) {
             logger.error("JobRetryServiceImpl|Error occurred while retrying jobs", e);
         }
+    }
+
+    private void removeOrphanDependencies() {
+        logger.info("JobRetryServiceImpl|Removing orphan dependencies");
+
+        var dependencies = jobDependencyRepository.findAll();
+        dependencies.forEach(jobDependency -> {
+            var dependentJob = jobRepository.findById(jobDependency.getDependencyId());
+            if (dependentJob.isPresent() && dependentJob.get().getStatus().equals(JobStatus.COMPLETED)) {
+                jobDependencyService.informDependents(dependentJob.get().getId());
+            }
+        });
     }
 }

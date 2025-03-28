@@ -16,21 +16,6 @@ public class JobDependencyServiceImpl implements JobDependencyService {
 
     public final JobDependencyRepository jobDependencyRepository;
 
-    @Transactional
-    @Override
-    public void addDependency(UUID jobId, UUID dependencyId) {
-        jobDependencyRepository.save(JobDependencyEntity.builder()
-                .jobId(jobId)
-                .dependencyId(dependencyId)
-                .build());
-    }
-
-    @Transactional
-    @Override
-    public void removeDependency(UUID jobId, UUID dependencyId) {
-        jobDependencyRepository.removeDependency(jobId, dependencyId);
-    }
-
     @Transactional(readOnly = true)
     @Override
     public Set<UUID> getDependencies(UUID jobId) {
@@ -47,5 +32,24 @@ public class JobDependencyServiceImpl implements JobDependencyService {
     @Override
     public Set<UUID> getDependents(UUID jobId) {
         return jobDependencyRepository.findDependents(jobId);
+    }
+
+    @Transactional
+    @Override
+    public void informDependents(UUID jobId) {
+        getDependents(jobId).forEach(dependentJobId -> {
+            removeDependency(dependentJobId, jobId);
+        });
+    }
+
+    private void addDependency(UUID jobId, UUID dependencyId) {
+        jobDependencyRepository.save(JobDependencyEntity.builder()
+                .jobId(jobId)
+                .dependencyId(dependencyId)
+                .build());
+    }
+
+    private void removeDependency(UUID jobId, UUID dependencyId) {
+        jobDependencyRepository.removeDependency(jobId, dependencyId);
     }
 }
