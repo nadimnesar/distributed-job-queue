@@ -1,17 +1,17 @@
 # Makefile for managing Docker, Liquibase migrations, and build processes
 
 # Build and start everything
-up: build docker-down data-up migrate docker-up
+up: build down data-up migrate docker-up
 
 # Up for local development
-up-local: docker-down data-up migrate
+up-local: down data-up migrate
 
 # Build and package the application (skipping tests)
 build:
 	mvn clean install -DskipTests
 
 # Stop all running containers and remove orphaned containers
-docker-down:
+down:
 	docker-compose down --remove-orphans
 	docker-compose -f docker-compose-data.yml down --remove-orphans
 
