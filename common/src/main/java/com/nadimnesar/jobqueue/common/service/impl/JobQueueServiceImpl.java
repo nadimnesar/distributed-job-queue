@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class JobQueueServiceImpl implements JobQueueService {
@@ -66,6 +68,21 @@ public class JobQueueServiceImpl implements JobQueueService {
     public void moveToDeadLetterQueue(String jobId) {
         logger.info("JobQueueServiceImpl|Moving job {} to dead letter queue", jobId);
         redisQueueService.enqueue(RedisConstant.DEAD_LETTER_QUEUE_KEY, jobId);
+    }
+
+    @Override
+    public List<String> dequeueDeadLetterJobs() {
+        logger.info("RedisJobQueueServiceImpl|Attempting to dequeue dead letter jobs");
+
+        List<String> jobIds = redisQueueService.dequeueAll(RedisConstant.DEAD_LETTER_QUEUE_KEY);
+
+        if (!jobIds.isEmpty()) {
+            logger.info("JobQueueServiceImpl|Successfully dequeued {} dead letter jobs", jobIds.size());
+            return jobIds;
+        }
+
+        logger.info("JobQueueServiceImpl|No dead letter jobs available to dequeue");
+        return List.of();
     }
 
     private String getQueueKeyByPriority(JobPriority priority) {

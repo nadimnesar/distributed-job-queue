@@ -56,7 +56,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         }
 
         if (job.getCurrentRetryAttemptCount() >= job.getMaxRetryAttemptCount() && !checkCanceled(job.getId())) {
-            logger.error("JobProcessorService|Max retry attempts reached for job with ID: {}", jobId);
+            logger.warn("JobProcessorService|Max retry attempts reached for job with ID: {}", jobId);
             handleFailedJob(job, "Max retry attempts reached");
             jobQueueService.moveToDeadLetterQueue(jobId);
             return;

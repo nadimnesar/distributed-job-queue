@@ -11,4 +11,6 @@ public interface JobService {
     CommonResponse getJobById(String jobId);
 
     CommonResponse cancelJob(String jobId);
+
+    CommonResponse retryDeadJobs();
 }
