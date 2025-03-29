@@ -25,3 +25,4 @@ schedule:
   cron:
     consume: "*/10 * * * * *"
     retry: "0 */3 * * * *"
+    heartbeat: "*/5 * * * * *"

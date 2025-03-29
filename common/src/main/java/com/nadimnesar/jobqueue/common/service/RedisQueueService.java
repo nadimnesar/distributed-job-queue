@@ -8,4 +8,6 @@ public interface RedisQueueService {
     Boolean acquireLock(String lockKey, long expireTime);
 
     void releaseLock(String lockKey);
+
+    Long getQueueLength(String key);
 }
