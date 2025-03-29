@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -25,6 +27,21 @@ public class RedisQueueServiceImpl implements RedisQueueService {
     @Override
     public String dequeue(String key) {
         return redisTemplate.opsForList().leftPop(key);
+    }
+
+    @Override
+    public List<String> dequeueAll(String key) {
+        // Get all elements, -1 means last element of the list
+        List<String> values = redisTemplate.opsForList().range(key, 0, -1);
+
+        if (values != null && !values.isEmpty()) {
+            // The trim(start, end) method keeps elements in the given range and removes everything outside it.
+            // Since values.size() is the total number of elements we just fetched, this means we are keeping
+            // elements beyond the current last index—which doesn't exist. Effectively, it clears the entire list.
+            redisTemplate.opsForList().trim(key, values.size(), -1);
+        }
+
+        return values != null ? values : Collections.emptyList();
     }
 
     @Override
@@ -56,9 +73,7 @@ public class RedisQueueServiceImpl implements RedisQueueService {
     @Override
     public Long getQueueLength(String key) {
         Long length = redisTemplate.opsForList().size(key);
-        if (length != null) {
-            logger.info("Queue length for key {}: {}", key, length);
-        } else {
+        if (length == null) {
             logger.warn("Failed to get queue length for key {}", key);
         }
         return length;

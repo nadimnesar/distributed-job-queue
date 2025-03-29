@@ -5,9 +5,9 @@ public class RedisConstant {
     }
 
     public static final String REDIS_LOCK_PREFIX = "redis:lock:";
-    public static final String REDIS_WORKER_HEALTH_KEY = "worker:*:health:";
+    public static final String REDIS_WORKER_HEALTH_KEY = "worker:*:health";
     public static final String REDIS_WORKER_HEALTH_KEY_PREFIX = "worker:";
-    public static final String REDIS_WORKER_HEALTH_KEY_SUFFIX = ":health:";
+    public static final String REDIS_WORKER_HEALTH_KEY_SUFFIX = ":health";
 
     //Queue keys
     public static final String HIGH_PRIORITY_JOB_QUEUE_KEY = "job:queue:high";
