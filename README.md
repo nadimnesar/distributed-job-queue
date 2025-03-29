@@ -80,7 +80,7 @@ curl --location 'http://localhost:8090/producer/api/v1/job/create' \
     "priority": "HIGH",
     "type": "PAYMENT_PROCESSING",
     "dependencies": [],
-    "payload": "",
+    "payload": "test",
     "maxRetryAttemptCount": 3
 }'
 ```

@@ -3,6 +3,7 @@ package com.nadimnesar.jobqueue.producer.controller;
 import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.producer.service.JobService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ public class JobController {
     private final JobService jobService;
 
     @PostMapping("/job/create")
-    public ResponseEntity<CommonResponse> submitJob(@RequestBody JobRequest jobRequest) {
+    public ResponseEntity<CommonResponse> submitJob(@Valid @RequestBody JobRequest jobRequest) {
         logger.info("JobController|Received submit job request: {}", jobRequest);
 
         try {
