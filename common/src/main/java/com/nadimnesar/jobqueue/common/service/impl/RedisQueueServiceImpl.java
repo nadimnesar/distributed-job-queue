@@ -52,4 +52,15 @@ public class RedisQueueServiceImpl implements RedisQueueService {
         logger.info("Releasing lock with key: {}", lockKey);
         redisTemplate.delete(RedisConstant.REDIS_LOCK_PREFIX + lockKey);
     }
+
+    @Override
+    public Long getQueueLength(String key) {
+        Long length = redisTemplate.opsForList().size(key);
+        if (length != null) {
+            logger.info("Queue length for key {}: {}", key, length);
+        } else {
+            logger.warn("Failed to get queue length for key {}", key);
+        }
+        return length;
+    }
 }
