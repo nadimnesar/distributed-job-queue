@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
+import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
@@ -39,25 +40,7 @@ public class JobServiceImpl implements JobService {
     public CommonResponse submitJob(JobRequest jobRequest) {
         logger.info("JobServiceImpl|Submitting job {}", jobRequest);
 
-        if (jobRequest.getDependencies() != null && !jobRequest.getDependencies().isEmpty()) {
-            List<JobEntity> existingJobs = jobRepository.findAllById(jobRequest.getDependencies());
-
-            Set<UUID> foundJobIds = existingJobs.stream()
-                    .map(JobEntity::getId)
-                    .collect(Collectors.toSet());
-
-            //Job should be submitted only if all dependencies are found and not canceled
-            Set<UUID> invalidDependencyIds = jobRequest.getDependencies().stream()
-                    .filter(depId -> !foundJobIds.contains(depId) ||
-                            existingJobs.stream()
-                                    .anyMatch(job -> job.getId().equals(depId) && job.getStatus() == JobStatus.CANCELED))
-                    .collect(Collectors.toSet());
-
-            if (!invalidDependencyIds.isEmpty()) {
-                logger.error("JobServiceImpl|Invalid dependencies found or canceled: {}", invalidDependencyIds);
-                throw new IllegalArgumentException("Dependencies not found or canceled: " + invalidDependencyIds);
-            }
-        }
+        validateJobRequest(jobRequest);
 
         JobEntity jobEntity = JobEntity.builder()
                 .priority(jobRequest.getPriority())
@@ -161,6 +144,59 @@ public class JobServiceImpl implements JobService {
                     .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .build();
         }
+    }
+
+    //Insure Directed Acyclic Graph (DAG) of jobs
+    //Insure Priority Hierarchy for jobs
+    private void validateJobRequest(JobRequest jobRequest) {
+        Set<UUID> dependencies = jobRequest.getDependencies();
+
+        if (dependencies == null || dependencies.isEmpty()) {
+            logger.debug("JobServiceImpl|Job request has no dependencies");
+            return;
+        }
+
+        List<JobEntity> dependencyJobs = jobRepository.findAllById(dependencies);
+
+        Set<UUID> foundJobIds = dependencyJobs.stream()
+                .map(JobEntity::getId)
+                .collect(Collectors.toSet());
+
+        Set<UUID> missingDependencies = dependencies.stream()
+                .filter(id -> !foundJobIds.contains(id))
+                .collect(Collectors.toSet());
+
+        if (!missingDependencies.isEmpty()) {
+            logger.error("JobServiceImpl|Dependencies not found: {}", missingDependencies);
+            throw new IllegalArgumentException("Dependencies not found: " + missingDependencies);
+        }
+
+        Set<UUID> canceledDependencies = dependencyJobs.stream()
+                .filter(job -> job.getStatus() == JobStatus.CANCELED)
+                .map(JobEntity::getId)
+                .collect(Collectors.toSet());
+
+        if (!canceledDependencies.isEmpty()) {
+            logger.error("JobServiceImpl|Cannot depend on canceled jobs: {}", canceledDependencies);
+            throw new IllegalArgumentException("Cannot depend on canceled jobs: " + canceledDependencies);
+        }
+
+        for (JobEntity dependency : dependencyJobs) {
+            if (isPriorityViolation(dependency.getPriority(), jobRequest.getPriority())) {
+                logger.error("JobServiceImpl|Priority hierarchy violation: {} job cannot depend on {} job",
+                        jobRequest.getPriority(), dependency.getPriority());
+                throw new IllegalArgumentException(
+                        String.format("Job priority hierarchy violated: %s job cannot depend on %s job",
+                                jobRequest.getPriority(), dependency.getPriority()));
+            }
+        }
+    }
+
+    // Higher priority job cannot depend on lower priority job
+    private boolean isPriorityViolation(JobPriority dependencyPriority, JobPriority jobPriority) {
+        return (dependencyPriority.equals(JobPriority.MEDIUM) && jobPriority.equals(JobPriority.HIGH)) ||
+                (dependencyPriority.equals(JobPriority.LOW) &&
+                        (jobPriority.equals(JobPriority.HIGH) || jobPriority.equals(JobPriority.MEDIUM)));
     }
 
     @Override
