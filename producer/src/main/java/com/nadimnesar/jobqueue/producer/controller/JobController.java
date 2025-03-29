@@ -13,14 +13,14 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/job")
+@RequestMapping("/api/v1")
 public class JobController {
 
     private static final Logger logger = LoggerFactory.getLogger(JobController.class);
 
     private final JobService jobService;
 
-    @PostMapping("/create")
+    @PostMapping("/job/create")
     public ResponseEntity<CommonResponse> submitJob(@RequestBody JobRequest jobRequest) {
         logger.info("JobController|Received submit job request: {}", jobRequest);
 
@@ -33,7 +33,7 @@ public class JobController {
         }
     }
 
-    @PostMapping("/cancel")
+    @PostMapping("/job/cancel")
     public ResponseEntity<CommonResponse> cancelJob(@RequestParam String id) {
         logger.info("JobController|Received cancel job request with ID: {}", id);
 
@@ -46,12 +46,12 @@ public class JobController {
         }
     }
 
-    @GetMapping("/get-all")
-    public ResponseEntity<CommonResponse> getJobs(@RequestParam int pageNumber, @RequestParam int pageSize) {
-        logger.info("JobController|Received get job request, pageNumber: {}, pageSize: {}", pageNumber, pageSize);
+    @GetMapping("/jobs")
+    public ResponseEntity<CommonResponse> getJobs(@RequestParam int page, @RequestParam int size) {
+        logger.info("JobController|Received get job request, pageNumber: {}, pageSize: {}", page, size);
 
         try {
-            var response = jobService.getAllJobs(pageNumber, pageSize);
+            var response = jobService.getAllJobs(page, size);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
             logger.error("JobController|Error occurred while getting jobs: {}", e.getMessage());
@@ -59,8 +59,8 @@ public class JobController {
         }
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<CommonResponse> getJobs(@RequestParam String id) {
+    @GetMapping("/job")
+    public ResponseEntity<CommonResponse> getJob(@RequestParam String id) {
         logger.info("JobController|Received get job request, id: {}", id);
 
         try {
