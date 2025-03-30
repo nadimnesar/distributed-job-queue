@@ -22,8 +22,8 @@ public class JobResponse {
     private String result;
     private String errorMessage;
     private Integer currentProgress;
-    private Integer currentRetryAttemptCount;
-    private Integer maxRetryAttemptCount;
+    private Integer currentAttemptCount;
+    private Integer maxAttemptCount;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
 }

@@ -29,7 +29,7 @@ public class JobRequest {
     @NotBlank(message = "Payload cannot be blank")
     private String payload;
 
-    @NotNull(message = "Max retry attempt count cannot be null")
-    @Min(value = 1, message = "Max retry attempt count must be at least 1")
-    private Integer maxRetryAttemptCount;
+    @NotNull(message = "Max attempt count cannot be null")
+    @Min(value = 1, message = "Max attempt count must be at least 1")
+    private Integer maxAttemptCount;
 }

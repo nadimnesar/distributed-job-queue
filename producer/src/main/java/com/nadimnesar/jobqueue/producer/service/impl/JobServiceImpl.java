@@ -46,7 +46,7 @@ public class JobServiceImpl implements JobService {
                 .priority(jobRequest.getPriority())
                 .type(jobRequest.getType())
                 .payload(jobRequest.getPayload())
-                .maxRetryAttemptCount(jobRequest.getMaxRetryAttemptCount())
+                .maxAttemptCount(jobRequest.getMaxAttemptCount())
                 .build();
 
         JobEntity savedJob = jobRepository.save(jobEntity);
@@ -222,8 +222,8 @@ public class JobServiceImpl implements JobService {
                 job.setStatus(JobStatus.PENDING);
                 job.setErrorMessage(null);
                 job.setCurrentProgress(0);
-                job.setCurrentRetryAttemptCount(0);
-                job.setMaxRetryAttemptCount(3); //default value 3
+                job.setCurrentAttemptCount(0);
+                job.setMaxAttemptCount(3); //default value 3
                 job.setStartedAt(null);
             }
 
@@ -264,8 +264,8 @@ public class JobServiceImpl implements JobService {
                 .result(jobEntity.getResult())
                 .errorMessage(jobEntity.getErrorMessage())
                 .currentProgress(jobEntity.getCurrentProgress())
-                .currentRetryAttemptCount(jobEntity.getCurrentRetryAttemptCount())
-                .maxRetryAttemptCount(jobEntity.getMaxRetryAttemptCount())
+                .currentAttemptCount(jobEntity.getCurrentAttemptCount())
+                .maxAttemptCount(jobEntity.getMaxAttemptCount())
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())
                 .build();
