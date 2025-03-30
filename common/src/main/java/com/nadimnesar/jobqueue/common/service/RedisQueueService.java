@@ -9,7 +9,7 @@ public interface RedisQueueService {
 
     List<String> dequeueAll(String key);
 
-    Boolean acquireLock(String lockKey, long expireTime);
+    boolean acquireLock(String lockKey);
 
     void releaseLock(String lockKey);
 

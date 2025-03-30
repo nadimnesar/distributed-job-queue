@@ -32,6 +32,7 @@
         <liquibase.version>4.19.0</liquibase.version>
         <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
         <uuid.creator.version>6.0.0</uuid.creator.version>
+        <redisson.version>3.45.1</redisson.version>
     </properties>
 
     <dependencyManagement>
@@ -74,6 +75,11 @@
                 <version>${jackson.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

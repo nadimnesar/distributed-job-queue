@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 @Service
@@ -26,25 +25,27 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     @Override
     @Scheduled(cron = "${schedule.cron.consume}")
     public void consumeJobs() {
-        logger.info("JobConsumerService|Starting job consumption cycle");
+        logger.info("JobConsumerService|Starting job consumption cycle, at: {}", System.currentTimeMillis());
 
         String jobId = jobQueueService.dequeueJob();
         if (jobId == null) {
-            logger.info("JobConsumerService|No jobs found in the queue");
             return;
         }
 
-        CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
+        virtualThreadParTaskExecutor.submit(() -> {
             try {
+                boolean lockStatus = redisQueueService.acquireLock(jobId);
+                if (!lockStatus) {
+                    logger.info("JobQueueServiceImpl|Job {} is already being processed by another worker", jobId);
+                    return;
+                }
+
                 jobProcessorService.processJob(jobId);
             } catch (Exception e) {
                 logger.error("JobConsumerService|Error processing job {}: {}", jobId, e.getMessage(), e);
             } finally {
                 redisQueueService.releaseLock(jobId);
             }
-        }, virtualThreadParTaskExecutor).exceptionally(throwable -> {
-            logger.error("JobConsumerService|Error processing job {}: {}", jobId, throwable.getMessage(), throwable);
-            return null;
         });
     }
 }
