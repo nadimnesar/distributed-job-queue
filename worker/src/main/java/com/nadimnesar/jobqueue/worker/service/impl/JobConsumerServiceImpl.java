@@ -25,7 +25,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     @Override
     @Scheduled(cron = "${schedule.cron.consume}")
     public void consumeJobs() {
-        logger.info("JobConsumerService|Starting job consumption cycle, at: {}", System.currentTimeMillis());
+        logger.info("Starting job consumption cycle, at: {}", System.currentTimeMillis());
 
         String jobId = jobQueueService.dequeueJob();
         if (jobId == null) {
@@ -36,13 +36,13 @@ public class JobConsumerServiceImpl implements JobConsumerService {
             try {
                 boolean lockStatus = redisQueueService.acquireLock(jobId);
                 if (!lockStatus) {
-                    logger.info("JobQueueServiceImpl|Job {} is already being processed by another worker", jobId);
+                    logger.info("Job {} is already being processed by another worker", jobId);
                     return;
                 }
 
                 jobProcessorService.processJob(jobId);
             } catch (Exception e) {
-                logger.error("JobConsumerService|Error processing job {}: {}", jobId, e.getMessage(), e);
+                logger.error("Error processing job {}: {}", jobId, e.getMessage(), e);
             } finally {
                 redisQueueService.releaseLock(jobId);
             }

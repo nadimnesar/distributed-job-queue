@@ -26,7 +26,7 @@ public class ExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   @NonNull HttpHeaders headers,
                                                                   @NonNull HttpStatusCode status,
                                                                   @NonNull WebRequest request) {
-        logger.error("ExceptionHandler|Message not readable: {}", ex.getMessage());
+        logger.error("Message not readable: {}", ex.getMessage());
 
         CommonResponse response = CommonResponse.badRequest("Malformed JSON request: " + ex.getMessage());
         return new ResponseEntity<>(response, headers, HttpStatus.BAD_REQUEST);
@@ -37,7 +37,7 @@ public class ExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   @NonNull HttpHeaders headers,
                                                                   @NonNull HttpStatusCode status,
                                                                   @NonNull WebRequest request) {
-        logger.error("ExceptionHandler|Invalid method arguments: {}", ex.getMessage());
+        logger.error("Invalid method arguments: {}", ex.getMessage());
 
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())

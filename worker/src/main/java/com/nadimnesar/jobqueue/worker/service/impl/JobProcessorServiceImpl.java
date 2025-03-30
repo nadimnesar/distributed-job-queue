@@ -28,11 +28,11 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
     @Override
     public void processJob(String jobId) {
-        logger.info("JobProcessorService|Processing job with id: {}", jobId);
+        logger.info("Processing job with id: {}", jobId);
 
         Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
         if (optionalJob.isEmpty()) {
-            logger.error("JobProcessorService|Job with ID: {} not found", jobId);
+            logger.error("Job with ID: {} not found", jobId);
             return;
         }
 
@@ -40,23 +40,23 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
         switch (job.getStatus()) {
             case JobStatus.CANCELED:
-                logger.info("JobProcessorService|Job with ID: {} already canceled, no needs to process it", jobId);
+                logger.info("Job with ID: {} already canceled, no needs to process it", jobId);
                 return;
             case JobStatus.COMPLETED:
-                logger.info("JobProcessorService|Job with ID: {} already completed", jobId);
+                logger.info("Job with ID: {} already completed", jobId);
                 return;
             default:
                 break;
         }
 
         if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
-            logger.info("JobProcessorService|Job with ID: {} has dependencies, waiting for them to complete", jobId);
+            logger.info("Job with ID: {} has dependencies, waiting for them to complete", jobId);
             jobQueueService.enqueueJob(job);
             return;
         }
 
         if (job.getCurrentRetryAttemptCount() >= job.getMaxRetryAttemptCount() && !checkCanceled(job.getId())) {
-            logger.warn("JobProcessorService|Max retry attempts reached for job with ID: {}", jobId);
+            logger.warn("Max retry attempts reached for job with ID: {}", jobId);
             handleFailedJob(job, "Max retry attempts reached");
             jobQueueService.moveToDeadLetterQueue(jobId);
             return;
@@ -83,16 +83,16 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
             if (!cancellationFlag.get()) {
                 handleCompletedJob(job);
-                logger.info("JobProcessorService|Successfully processed job with ID: {}", jobId);
+                logger.info("Successfully processed job with ID: {}", jobId);
             }
         } catch (Exception e) {
             handleFailedJob(job, e.getMessage());
-            logger.error("JobProcessorService|Failed to process job with ID: {}", jobId, e);
+            logger.error("Failed to process job with ID: {}", jobId, e);
         }
     }
 
     private void processEmailSendingJob(JobEntity job, AtomicBoolean cancellationFlag) {
-        logger.info("JobProcessorService|Processing email sending job with ID: {}", job.getId());
+        logger.info("Processing email sending job with ID: {}", job.getId());
 
         try {
             int totalSteps = 10;
@@ -108,7 +108,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 int progress = (step * 100) / totalSteps;
                 updateJobProgress(job, progress);
 
-                logger.info("JobProcessorService|Email sending job id {}, progress: {}%", job.getId(), progress);
+                logger.info("Email sending job id {}, progress: {}%", job.getId(), progress);
 
                 Thread.sleep(waitTimeMs);
             }
@@ -119,7 +119,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
     }
 
     private void processPaymentProcessingJob(JobEntity job, AtomicBoolean cancellationFlag) {
-        logger.info("JobProcessorService|Processing payment processing job with ID: {}", job.getId());
+        logger.info("Processing payment processing job with ID: {}", job.getId());
 
         try {
             int totalSteps = 10;
@@ -135,7 +135,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                 int progress = (step * 100) / totalSteps;
                 updateJobProgress(job, progress);
 
-                logger.info("JobProcessorService|Payment processing job id {}, progress: {}%", job.getId(), progress);
+                logger.info("Payment processing job id {}, progress: {}%", job.getId(), progress);
 
                 Thread.sleep(waitTimeMs);
             }
@@ -197,7 +197,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
     private Boolean checkCanceled(UUID jobId) {
         var jobFromDb = jobRepository.findById(jobId);
         if (jobFromDb.isPresent() && jobFromDb.get().getStatus() == JobStatus.CANCELED) {
-            logger.info("JobProcessorService|Job with ID: {} was canceled during processing", jobId);
+            logger.info("Job with ID: {} was canceled during processing", jobId);
             return true;
         }
         return false;
