@@ -28,7 +28,7 @@ public class JobRetryServiceImpl implements JobRetryService {
     @Scheduled(cron = "${schedule.cron.retry}")
     @Transactional
     public void retryJobs() {
-        logger.info("JobRetryServiceImpl|Starting job retry process");
+        logger.info("JobRetryServiceImpl|Starting job retry process, at: {}", System.currentTimeMillis());
 
         removeOrphanDependencies();
 

@@ -33,6 +33,12 @@ public class HeartBeatServiceImpl implements HeartBeatService {
     @Override
     @Scheduled(cron = "${schedule.cron.heartbeat}")
     public void sendHeartbeat() {
+        if (workerId == null) {
+            logger.warn("Worker ID is not initialized. Skipping heartbeat.");
+            return;
+        }
+
+        logger.info("Sending heartbeat for worker: {}, at: {}", workerId, System.currentTimeMillis());
         try {
             WorkerHealth health = collectHealthMetrics();
             String healthJson = objectMapper.writeValueAsString(health);
@@ -40,11 +46,11 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             String key = RedisConstant.REDIS_WORKER_HEALTH_KEY_PREFIX + workerId + RedisConstant.REDIS_WORKER_HEALTH_KEY_SUFFIX;
             redisTemplate.opsForValue().set(key, healthJson, 10, TimeUnit.SECONDS);
 
-            logger.debug("Heartbeat sent for worker: {}, body: {}", workerId, healthJson);
+            logger.info("Heartbeat sent for worker: {}, body: {}", workerId, healthJson);
         } catch (JsonProcessingException e) {
-            logger.error("Failed to serialize worker health metrics", e);
+            logger.error("Failed to serialize worker health metrics, error: {}", e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("Failed to send heartbeat", e);
+            logger.error("Failed to send heartbeat, error: {}", e.getMessage(), e);
         }
     }
 
