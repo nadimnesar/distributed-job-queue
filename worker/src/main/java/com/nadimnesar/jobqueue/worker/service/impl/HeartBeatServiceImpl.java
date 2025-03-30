@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +39,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             return;
         }
 
-        logger.debug("Sending heartbeat for worker: {}, at: {}", workerId, System.currentTimeMillis());
+        logger.debug("Sending heartbeat for worker: {}, at: {}", workerId, LocalDateTime.now());
         try {
             WorkerHealth health = collectHealthMetrics();
             String healthJson = objectMapper.writeValueAsString(health);

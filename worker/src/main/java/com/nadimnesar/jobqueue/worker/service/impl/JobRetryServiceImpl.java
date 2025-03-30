@@ -13,6 +13,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class JobRetryServiceImpl implements JobRetryService {
@@ -28,7 +30,7 @@ public class JobRetryServiceImpl implements JobRetryService {
     @Scheduled(cron = "${schedule.cron.retry}")
     @Transactional
     public void retryJobs() {
-        logger.info("Starting job retry process, at: {}", System.currentTimeMillis());
+        logger.info("Starting job retry process, at: {}", LocalDateTime.now());
 
         removeOrphanDependencies();
 

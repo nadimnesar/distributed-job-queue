@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
 
 @Service
@@ -25,7 +26,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     @Override
     @Scheduled(cron = "${schedule.cron.consume}")
     public void consumeJobs() {
-        logger.info("Starting job consumption cycle, at: {}", System.currentTimeMillis());
+        logger.info("Starting job consumption cycle, at: {}", LocalDateTime.now());
 
         String jobId = jobQueueService.dequeueJob();
         if (jobId == null) {
