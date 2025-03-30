@@ -73,15 +73,15 @@ public class JobController {
         }
     }
 
-    @GetMapping("/jobs/retry-dead")
-    public ResponseEntity<CommonResponse> retryDeadJobs() {
-        logger.info("Received retry dead jobs request");
+    @GetMapping("/jobs/revive")
+    public ResponseEntity<CommonResponse> reviveDeadJobs() {
+        logger.info("Received revive dead jobs request");
 
         try {
-            var response = jobService.retryDeadJobs();
+            var response = jobService.reviveDeadJobs();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("Error occurred while retrying dead jobs: {}", e.getMessage());
+            logger.error("Error occurred while reviving dead jobs: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
