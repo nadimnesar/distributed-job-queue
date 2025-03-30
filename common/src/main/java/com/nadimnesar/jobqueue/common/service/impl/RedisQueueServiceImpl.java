@@ -3,79 +3,82 @@ package com.nadimnesar.jobqueue.common.service.impl;
 import com.nadimnesar.jobqueue.common.constant.RedisConstant;
 import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RQueue;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class RedisQueueServiceImpl implements RedisQueueService {
     private static final Logger logger = LoggerFactory.getLogger(RedisQueueServiceImpl.class);
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedissonClient redissonClient;
 
     @Override
     public void enqueue(String key, String value) {
-        redisTemplate.opsForList().rightPush(key, value);
+        RQueue<String> queue = redissonClient.getQueue(key);
+        queue.add(value);
     }
 
     @Override
     public String dequeue(String key) {
-        return redisTemplate.opsForList().leftPop(key);
+        RQueue<String> queue = redissonClient.getQueue(key);
+        return queue.poll();
     }
 
     @Override
     public List<String> dequeueAll(String key) {
-        // Get all elements, -1 means last element of the list
-        List<String> values = redisTemplate.opsForList().range(key, 0, -1);
-
-        if (values != null && !values.isEmpty()) {
-            // The trim(start, end) method keeps elements in the given range and removes everything outside it.
-            // Since values.size() is the total number of elements we just fetched, this means we are keeping
-            // elements beyond the current last index—which doesn't exist. Effectively, it clears the entire list.
-            redisTemplate.opsForList().trim(key, values.size(), -1);
-        }
-
+        RQueue<String> queue = redissonClient.getQueue(key);
+        List<String> values = queue.readAll();
+        queue.clear();
         return values != null ? values : Collections.emptyList();
     }
 
     @Override
-    public Boolean acquireLock(String lockKey, long expireTime) {
-        logger.info("Acquiring lock with key: {}, for {} milliseconds", lockKey, expireTime);
+    public boolean acquireLock(String lockKey) {
+        logger.info("Acquiring lock with key: {} with watchdog mode enabled.", lockKey);
 
-        var success = redisTemplate.opsForValue().setIfAbsent(
-                RedisConstant.REDIS_LOCK_PREFIX + lockKey,
-                "1",
-                expireTime,
-                TimeUnit.MILLISECONDS
-        );
+        RLock lock = redissonClient.getFairLock(RedisConstant.REDIS_LOCK_PREFIX + lockKey);
+        try {
+            // Using lock() enables watchdog mode
+            // The lock will be held until explicitly released or the process dies
+            lock.lock();
 
-        if (success != null && success) {
-            logger.info("Lock acquired with key: {}", lockKey);
-        } else {
-            logger.info("Failed to acquire lock with key: {}", lockKey);
+            logger.info("Lock acquired successfully with key: {}", lockKey);
+            return true;
+        } catch (Exception e) {
+            logger.error("Error acquiring lock with key {}: {}", lockKey, e.getMessage());
+            return false;
         }
-
-        return Boolean.TRUE.equals(success);
     }
 
     @Override
     public void releaseLock(String lockKey) {
-        logger.info("Releasing lock with key: {}", lockKey);
-        redisTemplate.delete(RedisConstant.REDIS_LOCK_PREFIX + lockKey);
+        logger.info("Attempting to release lock with key: {}", lockKey);
+        RLock lock = redissonClient.getFairLock(RedisConstant.REDIS_LOCK_PREFIX + lockKey);
+
+        try {
+            // Atomic check to ensure only the original owner can release the lock
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                logger.info("Lock released successfully with key: {}", lockKey);
+            } else {
+                logger.warn("Lock with key: {} is not held by the current thread, skipping unlock", lockKey);
+            }
+        } catch (Exception e) {
+            logger.error("Error releasing lock with key {}: {}", lockKey, e.getMessage(), e);
+        }
     }
 
     @Override
     public Long getQueueLength(String key) {
-        Long length = redisTemplate.opsForList().size(key);
-        if (length == null) {
-            logger.warn("Failed to get queue length for key {}", key);
-        }
-        return length;
+        RQueue<String> queue = redissonClient.getQueue(key);
+        return (long) queue.size();
     }
 }

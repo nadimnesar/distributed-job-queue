@@ -44,23 +44,12 @@ public class JobQueueServiceImpl implements JobQueueService {
             jobId = redisQueueService.dequeue(RedisConstant.LOW_PRIORITY_JOB_QUEUE_KEY);
         }
 
-        if (jobId != null) {
-
-            // This job is locked till 3 minutes.
-            // Theoretically never two workers can dequeue the same job, but if same job is queued again by retry
-            // mechanism, this lock will prevent it from being process same job in multiple worker.
-            boolean lockStatus = redisQueueService.acquireLock(jobId, 180000);
-
-            if (!lockStatus) {
-                logger.info("JobQueueServiceImpl|Job {} is already being processed by another worker", jobId);
-                return null;
-            }
-
-            logger.info("JobQueueServiceImpl|Successfully dequeued job with ID: {}", jobId);
-        } else {
-            logger.info("JobQueueServiceImpl|No jobs available to dequeue");
+        if (jobId == null) {
+            logger.info("JobQueueServiceImpl|No jobs found in the queue");
+            return null;
         }
 
+        logger.info("JobQueueServiceImpl|Successfully dequeued job with ID: {}", jobId);
         return jobId;
     }
 
