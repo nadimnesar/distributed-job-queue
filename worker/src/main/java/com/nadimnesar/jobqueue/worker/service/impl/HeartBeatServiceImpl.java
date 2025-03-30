@@ -46,7 +46,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             String key = RedisConstant.REDIS_WORKER_HEALTH_KEY_PREFIX + workerId + RedisConstant.REDIS_WORKER_HEALTH_KEY_SUFFIX;
             redisTemplate.opsForValue().set(key, healthJson, 10, TimeUnit.SECONDS);
 
-            logger.info("Heartbeat sent for worker: {}, body: {}", workerId, healthJson);
+            logger.info("Heartbeat sent for worker: {}", workerId);
         } catch (JsonProcessingException e) {
             logger.error("Failed to serialize worker health metrics, error: {}", e.getMessage(), e);
         } catch (Exception e) {
