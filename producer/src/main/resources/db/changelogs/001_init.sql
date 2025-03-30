@@ -29,3 +29,7 @@ CREATE TABLE job_dependency
     FOREIGN KEY (dependency_id) REFERENCES job (id),
     CONSTRAINT unique_job_dependency UNIQUE (job_id, dependency_id)
 );
+
+-- nadimnesar-001.3
+ALTER TABLE job RENAME COLUMN current_retry_attempt_count TO current_attempt_count;
+ALTER TABLE job RENAME COLUMN max_retry_attempt_count TO max_attempt_count;

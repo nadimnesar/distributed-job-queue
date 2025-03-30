@@ -19,8 +19,8 @@ public class DbConstant {
         public static final String RESULT = "result";
         public static final String ERROR_MESSAGE = "error_message";
         public static final String CURRENT_PROGRESS = "current_progress";
-        public static final String CURRENT_RETRY_ATTEMPT_COUNT = "current_retry_attempt_count";
-        public static final String MAX_RETRY_ATTEMPT_COUNT = "max_retry_attempt_count";
+        public static final String CURRENT_ATTEMPT_COUNT = "current_attempt_count";
+        public static final String MAX_ATTEMPT_COUNT = "max_attempt_count";
         public static final String STARTED_AT = "started_at";
         public static final String COMPLETED_AT = "completed_at";
     }
