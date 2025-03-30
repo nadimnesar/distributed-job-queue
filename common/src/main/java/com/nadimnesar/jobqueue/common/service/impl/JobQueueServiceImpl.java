@@ -22,17 +22,17 @@ public class JobQueueServiceImpl implements JobQueueService {
     @Override
     public void enqueueJob(JobEntity job) {
         var jobId = job.getId().toString();
-        logger.info("RedisJobQueueServiceImpl|Enqueueing job with ID: {}", jobId);
+        logger.info("Enqueueing job with ID: {}", jobId);
 
         String queueKey = getQueueKeyByPriority(job.getPriority());
         redisQueueService.enqueue(queueKey, jobId);
 
-        logger.info("RedisJobQueueServiceImpl|Successfully enqueued job with ID: {}", jobId);
+        logger.info("Successfully enqueued job with ID: {}", jobId);
     }
 
     @Override
     public String dequeueJob() {
-        logger.info("RedisJobQueueServiceImpl|Attempting to dequeue job");
+        logger.info("Attempting to dequeue job");
 
         String jobId = redisQueueService.dequeue(RedisConstant.HIGH_PRIORITY_JOB_QUEUE_KEY);
 
@@ -45,23 +45,23 @@ public class JobQueueServiceImpl implements JobQueueService {
         }
 
         if (jobId == null) {
-            logger.info("JobQueueServiceImpl|No jobs found in the queue");
+            logger.info("No jobs found in the queue");
             return null;
         }
 
-        logger.info("JobQueueServiceImpl|Successfully dequeued job with ID: {}", jobId);
+        logger.info("Successfully dequeued job with ID: {}", jobId);
         return jobId;
     }
 
     @Override
     public void moveToDeadLetterQueue(String jobId) {
-        logger.info("JobQueueServiceImpl|Moving job {} to dead letter queue", jobId);
+        logger.info("Moving job {} to dead letter queue", jobId);
         redisQueueService.enqueue(RedisConstant.DEAD_LETTER_QUEUE_KEY, jobId);
     }
 
     @Override
     public List<String> dequeueDeadLetterJobs() {
-        logger.info("RedisJobQueueServiceImpl|Attempting to dequeue dead letter jobs");
+        logger.info("Attempting to dequeue dead letter jobs");
 
         List<String> jobIds = redisQueueService.dequeueAll(RedisConstant.DEAD_LETTER_QUEUE_KEY);
 

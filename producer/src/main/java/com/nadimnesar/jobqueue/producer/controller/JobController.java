@@ -23,65 +23,65 @@ public class JobController {
 
     @PostMapping("/job/create")
     public ResponseEntity<CommonResponse> submitJob(@Valid @RequestBody JobRequest jobRequest) {
-        logger.info("JobController|Received submit job request: {}", jobRequest);
+        logger.info("Received submit job request: {}", jobRequest);
 
         try {
             var response = jobService.submitJob(jobRequest);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("JobController|Error occurred while creating job: {}", e.getMessage());
+            logger.error("Error occurred while creating job: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 
     @PostMapping("/job/cancel")
     public ResponseEntity<CommonResponse> cancelJob(@RequestParam String id) {
-        logger.info("JobController|Received cancel job request with ID: {}", id);
+        logger.info("Received cancel job request with ID: {}", id);
 
         try {
             var response = jobService.cancelJob(id);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("JobController|Error occurred while canceling job: {}", e.getMessage());
+            logger.error("Error occurred while canceling job: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 
     @GetMapping("/jobs")
     public ResponseEntity<CommonResponse> getJobs(@RequestParam int page, @RequestParam int size) {
-        logger.info("JobController|Received get job request, pageNumber: {}, pageSize: {}", page, size);
+        logger.info("Received get job request, pageNumber: {}, pageSize: {}", page, size);
 
         try {
             var response = jobService.getAllJobs(page, size);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("JobController|Error occurred while getting jobs: {}", e.getMessage());
+            logger.error("Error occurred while getting jobs: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 
     @GetMapping("/job")
     public ResponseEntity<CommonResponse> getJob(@RequestParam String id) {
-        logger.info("JobController|Received get job request, id: {}", id);
+        logger.info("Received get job request, id: {}", id);
 
         try {
             var response = jobService.getJobById(id);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("JobController|Error occurred while getting job: {}", e.getMessage());
+            logger.error("Error occurred while getting job: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 
     @GetMapping("/jobs/retry-dead")
     public ResponseEntity<CommonResponse> retryDeadJobs() {
-        logger.info("JobController|Received retry dead jobs request");
+        logger.info("Received retry dead jobs request");
 
         try {
             var response = jobService.retryDeadJobs();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("JobController|Error occurred while retrying dead jobs: {}", e.getMessage());
+            logger.error("Error occurred while retrying dead jobs: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }

@@ -38,7 +38,7 @@ public class JobServiceImpl implements JobService {
     @Override
     @Transactional
     public CommonResponse submitJob(JobRequest jobRequest) {
-        logger.info("JobServiceImpl|Submitting job {}", jobRequest);
+        logger.info("Submitting job {}", jobRequest);
 
         validateJobRequest(jobRequest);
 
@@ -71,7 +71,7 @@ public class JobServiceImpl implements JobService {
     @Override
     @Transactional(readOnly = true)
     public CommonResponse getAllJobs(int pageNumber, int pageSize) {
-        logger.info("JobServiceImpl|Getting all jobs by page number: {}, page size: {}", pageNumber, pageSize);
+        logger.info("Getting all jobs by page number: {}, page size: {}", pageNumber, pageSize);
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
         List<JobEntity> jobEntities = jobRepository.findAll(pageable).getContent();
@@ -79,7 +79,7 @@ public class JobServiceImpl implements JobService {
         var jobResponses = jobEntities.stream().map(this::convertToJobResponse).toList();
 
         if (jobResponses.isEmpty()) {
-            logger.info("JobServiceImpl|No jobs found");
+            logger.info("No jobs found");
             return CommonResponse.notFound("No jobs found");
         }
 
@@ -91,12 +91,12 @@ public class JobServiceImpl implements JobService {
     @Override
     @Transactional(readOnly = true)
     public CommonResponse getJobById(String jobId) {
-        logger.info("JobServiceImpl|Getting job by id: {}", jobId);
+        logger.info("Getting job by id: {}", jobId);
 
         Optional<JobEntity> job = jobRepository.findById(UUID.fromString(jobId));
 
         if (job.isEmpty()) {
-            logger.info("JobServiceImpl|No job found with given id: {}", jobId);
+            logger.info("No job found with given id: {}", jobId);
             return CommonResponse.notFound("No job found with given id.");
         }
 
@@ -110,24 +110,24 @@ public class JobServiceImpl implements JobService {
     @Override
     @Transactional
     public CommonResponse cancelJob(String jobId) {
-        logger.info("JobServiceImpl|Cancelling job: {}", jobId);
+        logger.info("Cancelling job: {}", jobId);
 
         Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
 
         if (optionalJob.isEmpty()) {
-            logger.info("JobServiceImpl|Job not found: {}", jobId);
+            logger.info("Job not found: {}", jobId);
             return CommonResponse.notFound("Job not found");
         }
 
         var job = optionalJob.get();
 
         if (job.getStatus() == JobStatus.CANCELED) {
-            logger.info("JobServiceImpl|Job cancellation failed, job with ID: {} is already canceled", jobId);
+            logger.info("Job cancellation failed, job with ID: {} is already canceled", jobId);
             return CommonResponse.badRequest("Job is already cancelled");
         }
 
         if (job.getStatus() == JobStatus.COMPLETED) {
-            logger.info("JobServiceImpl|Job cancellation failed, job with ID: {} is already completed", jobId);
+            logger.info("Job cancellation failed, job with ID: {} is already completed", jobId);
             return CommonResponse.badRequest("Job is already completed");
         }
 
@@ -138,7 +138,7 @@ public class JobServiceImpl implements JobService {
                     .code(HttpStatus.ACCEPTED.value())
                     .build();
         } catch (Exception e) {
-            logger.error("JobServiceImpl|Job cancellation failed, error: {}", e.getMessage(), e);
+            logger.error("Job cancellation failed, error: {}", e.getMessage(), e);
             return CommonResponse.builder()
                     .message("Job cancellation failed")
                     .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -152,7 +152,7 @@ public class JobServiceImpl implements JobService {
         Set<UUID> dependencies = jobRequest.getDependencies();
 
         if (dependencies == null || dependencies.isEmpty()) {
-            logger.debug("JobServiceImpl|Job request has no dependencies");
+            logger.debug("Job request has no dependencies");
             return;
         }
 
@@ -167,7 +167,7 @@ public class JobServiceImpl implements JobService {
                 .collect(Collectors.toSet());
 
         if (!missingDependencies.isEmpty()) {
-            logger.error("JobServiceImpl|Dependencies not found: {}", missingDependencies);
+            logger.error("Dependencies not found: {}", missingDependencies);
             throw new IllegalArgumentException("Dependencies not found: " + missingDependencies);
         }
 
@@ -177,13 +177,13 @@ public class JobServiceImpl implements JobService {
                 .collect(Collectors.toSet());
 
         if (!canceledDependencies.isEmpty()) {
-            logger.error("JobServiceImpl|Cannot depend on canceled jobs: {}", canceledDependencies);
+            logger.error("Cannot depend on canceled jobs: {}", canceledDependencies);
             throw new IllegalArgumentException("Cannot depend on canceled jobs: " + canceledDependencies);
         }
 
         for (JobEntity dependency : dependencyJobs) {
             if (isPriorityViolation(dependency.getPriority(), jobRequest.getPriority())) {
-                logger.error("JobServiceImpl|Priority hierarchy violation: {} job cannot depend on {} job",
+                logger.error("Priority hierarchy violation: {} job cannot depend on {} job",
                         jobRequest.getPriority(), dependency.getPriority());
                 throw new IllegalArgumentException(
                         String.format("Job priority hierarchy violated: %s job cannot depend on %s job",
@@ -201,17 +201,17 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public CommonResponse retryDeadJobs() {
-        logger.info("JobServiceImpl|Starting to retry dead jobs");
+        logger.info("Starting to retry dead jobs");
 
         try {
             List<String> retriedJobIds = jobQueueService.dequeueDeadLetterJobs();
 
             if (retriedJobIds.isEmpty()) {
-                logger.info("JobServiceImpl|No dead jobs found to retry");
+                logger.info("No dead jobs found to retry");
                 return CommonResponse.notFound("No dead jobs found to retry");
             }
 
-            logger.info("JobServiceImpl|Retrying dead jobs: {}", retriedJobIds);
+            logger.info("Retrying dead jobs: {}", retriedJobIds);
 
             // Convert String IDs to UUIDs
             List<UUID> retriedJobUUIDs = retriedJobIds.stream().map(UUID::fromString).toList();
@@ -229,14 +229,14 @@ public class JobServiceImpl implements JobService {
 
             jobRepository.saveAll(retriedJobs);
 
-            logger.info("JobServiceImpl|Successfully retried {} dead jobs", retriedJobIds.size());
+            logger.info("Successfully retried {} dead jobs", retriedJobIds.size());
             return CommonResponse.builder()
                     .message(String.format("Successfully retried %d dead jobs", retriedJobIds.size()))
                     .data(retriedJobIds)
                     .code(HttpStatus.OK.value())
                     .build();
         } catch (Exception e) {
-            logger.error("JobServiceImpl|Failed to retry dead jobs: {}", e.getMessage(), e);
+            logger.error("Failed to retry dead jobs: {}", e.getMessage(), e);
             return CommonResponse.builder()
                     .message("Failed to retry dead jobs: " + e.getMessage())
                     .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -250,7 +250,7 @@ public class JobServiceImpl implements JobService {
 
         jobDependencyService.informDependents(jobEntity.getId());
 
-        logger.info("JobServiceImpl|Job cancellation completed, job with ID: {}", jobEntity.getId());
+        logger.info("Job cancellation completed, job with ID: {}", jobEntity.getId());
     }
 
     private JobResponse convertToJobResponse(JobEntity jobEntity) {

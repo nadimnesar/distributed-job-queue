@@ -28,7 +28,7 @@ public class JobRetryServiceImpl implements JobRetryService {
     @Scheduled(cron = "${schedule.cron.retry}")
     @Transactional
     public void retryJobs() {
-        logger.info("JobRetryServiceImpl|Starting job retry process, at: {}", System.currentTimeMillis());
+        logger.info("Starting job retry process, at: {}", System.currentTimeMillis());
 
         removeOrphanDependencies();
 
@@ -36,31 +36,31 @@ public class JobRetryServiceImpl implements JobRetryService {
             var retryableJobs = jobRepository.findJobsToRetry();
 
             if (retryableJobs.isEmpty()) {
-                logger.info("JobRetryServiceImpl|No jobs to retry");
+                logger.info("No jobs to retry");
                 return;
             }
 
-            logger.info("JobRetryServiceImpl|Found {} jobs to retry", retryableJobs.size());
+            logger.info("Found {} jobs to retry", retryableJobs.size());
 
             retryableJobs.forEach(job -> {
-                logger.info("JobRetryServiceImpl|Retrying job {}", job.getId());
+                logger.info("Retrying job {}", job.getId());
 
                 try {
                     jobQueueService.enqueueJob(job);
-                    logger.info("JobRetryServiceImpl|Job {} retried successfully", job.getId());
+                    logger.info("Job {} retried successfully", job.getId());
                 } catch (Exception e) {
-                    logger.error("JobRetryServiceImpl|Error occurred while retrying job {}", job.getId(), e);
+                    logger.error("Error occurred while retrying job {}", job.getId(), e);
                 }
             });
 
-            logger.info("JobRetryServiceImpl|Job retry process completed");
+            logger.info("Job retry process completed");
         } catch (Exception e) {
-            logger.error("JobRetryServiceImpl|Error occurred while retrying jobs", e);
+            logger.error("Error occurred while retrying jobs", e);
         }
     }
 
     private void removeOrphanDependencies() {
-        logger.info("JobRetryServiceImpl|Removing orphan dependencies");
+        logger.info("Removing orphan dependencies");
 
         var dependencies = jobDependencyRepository.findAll();
         dependencies.forEach(jobDependency -> {

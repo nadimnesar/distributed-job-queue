@@ -22,24 +22,24 @@ public class DashboardController {
 
     @GetMapping("/jobs/summary")
     public ResponseEntity<CommonResponse> getJobsSummary() {
-        logger.info("DashboardController|Received job summary request");
+        logger.info("Received job summary request");
         try {
             var response = dashboardService.getJobsSummary();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("DashboardController|Error occurred while getting jobs summary: {}", e.getMessage());
+            logger.error("Error occurred while getting jobs summary: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
 
     @GetMapping("/metrics")
     public ResponseEntity<CommonResponse> getSystemMetrics() {
-        logger.info("DashboardController|Received system metrics request");
+        logger.info("Received system metrics request");
         try {
             var response = dashboardService.getSystemMetrics();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("DashboardController|Error occurred while getting system metrics: {}", e.getMessage());
+            logger.error("Error occurred while getting system metrics: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
