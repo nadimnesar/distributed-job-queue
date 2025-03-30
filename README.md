@@ -9,18 +9,16 @@ and handles job dependencies and failures gracefully.
 ### Requirements
 
 * **Producer:**
-    - Enqueue different types of jobs with priorities: High, Medium, and Low.
-    - Maintain job statuses: Pending, Processing, Completed, Failed, and Canceled.
-    - Support job dependencies to ensure tasks execute in the correct order.
-    - Implement job cancellation.
+    - Enqueue jobs with priorities and dependencies.
+    - Track job statuses: Pending, Processing, Completed, Failed, and Canceled.
+    - Support job cancellation and provide an API to revive dead jobs.
 * **Worker:**
-    - Deploy multiple worker nodes that can run on different machines.
-    - Support horizontal scaling based on queue length.
-    - Implement job progress tracking.
-    - Detect and handle job failures.
+    - Deploy multiple worker nodes across different machines.
+    - Dynamically scale based on queue length.
+    - Track job progress and handle failures.
+    - Use a Dead Letter Queue (DLQ) for unprocessable jobs.
     - Implement an automatic retry mechanism.
-    - Utilize a Dead Letter Queue (DLQ) for persistently failed jobs.
-    - Provide dashboard APIs for monitoring system metrics.
+    - Provide monitoring APIs for worker system metrics.
 
 ## System Design
 
@@ -81,18 +79,13 @@ curl --location 'http://localhost:8090/producer/api/v1/job/create' \
     "type": "PAYMENT_PROCESSING",
     "dependencies": [],
     "payload": "test",
-    "maxRetryAttemptCount": 3
+    "maxAttemptCount": 3
 }'
 ```
 
-#### Get Jobs
+#### Get Jobs with Pagination
 
 Request:
-
-```curl
-curl --location 'http://localhost:8090/producer/api/v1/job?id=0195e095-670d-7633-bdde-f830a1f09d74' \
---header 'Content-Type: application/json'
-```
 
 ```curl
 curl --location 'http://localhost:8090/producer/api/v1/jobs?page=0&size=10' \
@@ -105,21 +98,23 @@ Response:
 {
   "message": "Operation Successful.",
   "code": 200,
-  "data": {
-    "id": "0195e095-670d-7633-bdde-f830a1f09d74",
-    "priority": "HIGH",
-    "status": "COMPLETED",
-    "type": "PAYMENT_PROCESSING",
-    "dependents": [],
-    "dependencies": [],
-    "result": "Job completed successfully",
-    "errorMessage": null,
-    "currentProgress": 100,
-    "currentRetryAttemptCount": 1,
-    "maxRetryAttemptCount": 3,
-    "startedAt": "2025-03-29T12:36:20.005704",
-    "completedAt": "2025-03-29T12:37:20.085251"
-  }
+  "data": [
+    {
+      "id": "0195e719-9c73-7e08-bdf3-a3d01433c344",
+      "priority": "HIGH",
+      "status": "COMPLETED",
+      "type": "PAYMENT_PROCESSING",
+      "dependents": [],
+      "dependencies": [],
+      "result": "Job completed successfully",
+      "errorMessage": null,
+      "currentProgress": 100,
+      "currentAttemptCount": 1,
+      "maxAttemptCount": 3,
+      "startedAt": "2025-03-30T18:49:40.064995",
+      "completedAt": "2025-03-30T18:50:40.183834"
+    }
+  ]
 }
 ```
 
@@ -188,12 +183,12 @@ Response:
 }
 ```
 
-#### Retry Dead Jobs
+#### Revive Dead Jobs
 
 Request:
 
 ```curl
-curl --location --request POST 'http://localhost:8090/producer/api/v1/jobs/retry-dead' \
+curl --location --request POST 'http://localhost:8090/producer/api/v1/jobs/revive' \
 --header 'Content-Type: application/json'
 ```
 
@@ -201,7 +196,7 @@ Response:
 
 ```json
 {
-  "message": "Successfully retried 1 dead jobs",
+  "message": "Successfully revived 1 dead jobs",
   "code": 200,
   "data": [
     "0195e095-670d-7633-bdde-f830a1f09d74"
