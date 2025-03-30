@@ -200,25 +200,25 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public CommonResponse retryDeadJobs() {
-        logger.info("Starting to retry dead jobs");
+    public CommonResponse reviveDeadJobs() {
+        logger.info("Starting to revive dead jobs");
 
         try {
-            List<String> retriedJobIds = jobQueueService.dequeueDeadLetterJobs();
+            List<String> revivedJobIds = jobQueueService.dequeueDeadLetterJobs();
 
-            if (retriedJobIds.isEmpty()) {
-                logger.info("No dead jobs found to retry");
-                return CommonResponse.notFound("No dead jobs found to retry");
+            if (revivedJobIds.isEmpty()) {
+                logger.info("No dead jobs found to revive");
+                return CommonResponse.notFound("No dead jobs found to revive");
             }
 
-            logger.info("Retrying dead jobs: {}", retriedJobIds);
+            logger.info("Reviving dead jobs: {}", revivedJobIds);
 
             // Convert String IDs to UUIDs
-            List<UUID> retriedJobUUIDs = retriedJobIds.stream().map(UUID::fromString).toList();
+            List<UUID> revivedJobUUIDs = revivedJobIds.stream().map(UUID::fromString).toList();
 
-            // Find all jobs that were retried and update their status
-            List<JobEntity> retriedJobs = jobRepository.findAllById(retriedJobUUIDs);
-            for (JobEntity job : retriedJobs) {
+            // Find all jobs that were revived and update their status
+            List<JobEntity> revivedJobs = jobRepository.findAllById(revivedJobUUIDs);
+            for (JobEntity job : revivedJobs) {
                 job.setStatus(JobStatus.PENDING);
                 job.setErrorMessage(null);
                 job.setCurrentProgress(0);
@@ -227,18 +227,18 @@ public class JobServiceImpl implements JobService {
                 job.setStartedAt(null);
             }
 
-            jobRepository.saveAll(retriedJobs);
+            jobRepository.saveAll(revivedJobs);
 
-            logger.info("Successfully retried {} dead jobs", retriedJobIds.size());
+            logger.info("Successfully revived {} dead jobs", revivedJobIds.size());
             return CommonResponse.builder()
-                    .message(String.format("Successfully retried %d dead jobs", retriedJobIds.size()))
-                    .data(retriedJobIds)
+                    .message(String.format("Successfully revived %d dead jobs", revivedJobIds.size()))
+                    .data(revivedJobIds)
                     .code(HttpStatus.OK.value())
                     .build();
         } catch (Exception e) {
-            logger.error("Failed to retry dead jobs: {}", e.getMessage(), e);
+            logger.error("Failed to revive dead jobs: {}", e.getMessage(), e);
             return CommonResponse.builder()
-                    .message("Failed to retry dead jobs: " + e.getMessage())
+                    .message("Failed to revive dead jobs: " + e.getMessage())
                     .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .build();
         }
