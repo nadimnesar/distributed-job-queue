@@ -38,7 +38,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             return;
         }
 
-        logger.info("Sending heartbeat for worker: {}, at: {}", workerId, System.currentTimeMillis());
+        logger.debug("Sending heartbeat for worker: {}, at: {}", workerId, System.currentTimeMillis());
         try {
             WorkerHealth health = collectHealthMetrics();
             String healthJson = objectMapper.writeValueAsString(health);
@@ -46,7 +46,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             String key = RedisConstant.REDIS_WORKER_HEALTH_KEY_PREFIX + workerId + RedisConstant.REDIS_WORKER_HEALTH_KEY_SUFFIX;
             redisTemplate.opsForValue().set(key, healthJson, 10, TimeUnit.SECONDS);
 
-            logger.info("Heartbeat sent for worker: {}", workerId);
+            logger.debug("Heartbeat sent for worker: {}", workerId);
         } catch (JsonProcessingException e) {
             logger.error("Failed to serialize worker health metrics, error: {}", e.getMessage(), e);
         } catch (Exception e) {
@@ -78,6 +78,6 @@ public class HeartBeatServiceImpl implements HeartBeatService {
     @PostConstruct
     private void initialize() {
         this.workerId = UuidCreator.getTimeOrderedEpoch();
-        logger.info("Worker initialized with ID: {}", workerId);
+        logger.debug("Worker initialized with ID: {}", workerId);
     }
 }
