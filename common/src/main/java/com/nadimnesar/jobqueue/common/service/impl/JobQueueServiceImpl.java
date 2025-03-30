@@ -66,11 +66,11 @@ public class JobQueueServiceImpl implements JobQueueService {
         List<String> jobIds = redisQueueService.dequeueAll(RedisConstant.DEAD_LETTER_QUEUE_KEY);
 
         if (!jobIds.isEmpty()) {
-            logger.info("JobQueueServiceImpl|Successfully dequeued {} dead letter jobs", jobIds.size());
+            logger.info("Successfully dequeued {} dead letter jobs", jobIds.size());
             return jobIds;
         }
 
-        logger.info("JobQueueServiceImpl|No dead letter jobs available to dequeue");
+        logger.info("No dead letter jobs available to dequeue");
         return List.of();
     }
 
