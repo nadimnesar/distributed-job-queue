@@ -27,7 +27,6 @@
 
         <common.module.version>0.0.1-SNAPSHOT</common.module.version>
         <lombok.version>1.18.36</lombok.version>
-        <jackson.version>2.18.3</jackson.version>
         <postgresql.version>42.7.5</postgresql.version>
         <liquibase.version>4.19.0</liquibase.version>
         <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
@@ -68,13 +67,6 @@
                 <groupId>com.github.f4b6a3</groupId>
                 <artifactId>uuid-creator</artifactId>
                 <version>${uuid.creator.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${jackson.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.redisson</groupId>
