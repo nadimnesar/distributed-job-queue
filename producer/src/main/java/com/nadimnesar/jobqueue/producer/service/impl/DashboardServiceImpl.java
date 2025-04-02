@@ -1,7 +1,5 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nadimnesar.jobqueue.common.constant.RedisConstant;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.dto.WorkerHealth;
@@ -10,9 +8,11 @@ import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import com.nadimnesar.jobqueue.producer.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.options.KeysScanOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -22,9 +22,7 @@ import java.util.*;
 public class DashboardServiceImpl implements DashboardService {
     private static final Logger logger = LoggerFactory.getLogger(DashboardServiceImpl.class);
 
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
-
+    private final RedissonClient redissonClient;
     private final JobRepository jobRepository;
     private final RedisQueueService redisQueueService;
 
@@ -58,16 +56,16 @@ public class DashboardServiceImpl implements DashboardService {
         // Get worker health metrics
         try {
             List<WorkerHealth> workerHealthList = new ArrayList<>();
-            Set<String> workerHealthKeys = redisTemplate.keys(RedisConstant.REDIS_WORKER_HEALTH_KEY);
 
-            if (!workerHealthKeys.isEmpty()) {
-                for (String key : workerHealthKeys) {
-                    String healthJson = redisTemplate.opsForValue().get(key);
-                    if (healthJson != null) {
-                        JsonNode rootNode = objectMapper.readTree(healthJson);
-                        WorkerHealth healthData = objectMapper.treeToValue(rootNode, WorkerHealth.class);
-                        workerHealthList.add(healthData);
-                    }
+            Iterable<String> workerHealthKeys = redissonClient.getKeys()
+                    .getKeys(KeysScanOptions.defaults()
+                            .pattern(RedisConstant.REDIS_WORKER_HEALTH_KEY_PATTERN));
+
+            for (String key : workerHealthKeys) {
+                RBucket<WorkerHealth> bucket = redissonClient.getBucket(key);
+                WorkerHealth healthData = bucket.get();
+                if (healthData != null) {
+                    workerHealthList.add(healthData);
                 }
             }
 
