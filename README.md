@@ -22,9 +22,56 @@ and handles job dependencies and failures gracefully.
 
 ## System Design
 
-![System Architecture Diagram](https://i.ibb.co/r2Fx63kT/distributed-job-queue-system-with-redis-4.jpg)
+```mermaid
+flowchart TD
+    User((User)) --> Frontend[Frontend UI]
+    Frontend --> Nginx[Load Balancer: Nginx]
+    
+    subgraph Producers[Producer Service Cluster]
+        direction TB
+        Producer1[Producer 1]
+        Producer2[Producer 2]
+        Producer3[Producer 3]
+    end
+    
+    Nginx --> Producers
 
-### Technical Specifications
+    Producers -->|Enqueue Job| Redis[("Redis: Job Queue")]
+    
+    subgraph Workers[Worker Cluster]
+        direction TB
+        Worker1[Worker 1]
+        Worker2[Worker 2]
+        Worker3[Worker 3]
+        Worker4[Worker 4]
+        Worker5[Worker 5]
+    end
+    
+    Redis -->|Consume Job| Workers
+    
+    Workers -->|Update Job| PostgreSQL[("PostgreSQL: Job Metadata")]
+    Producers -->|Store Job Metadata| PostgreSQL
+
+    Workers --> Decision1{Successful?}
+    Decision1 -->|Yes| Done([Done])
+    Decision1 -->|No| Decision2{Limit Exceeded?}
+    Decision2 --> |Yes: DeadLetterQueue| Redis
+    Decision2 --> |No| Redis
+    
+    classDef producer fill:#8E44AD,stroke:#6C3483,color:white,stroke-width:2px,font-weight:bold
+    classDef worker fill:#F57C00,stroke:#E65100,color:white,stroke-width:2px,font-weight:bold
+    classDef database fill:#336791,stroke:#274472,color:white,stroke-width:2px,font-weight:bold,stroke-dasharray:5 2
+    classDef cache fill:#D32F2F,stroke:#B71C1C,color:white,stroke-width:2px,font-weight:bold,stroke-dasharray:5 2
+    classDef loadbalancer fill:#388E3C,stroke:#2E7D32,color:white,stroke-width:2px,font-weight:bold
+ 
+    class Producer1,Producer2,Producer3 producer
+    class Worker1,Worker2,Worker3,Worker4,Worker5 worker
+    class PostgreSQL database
+    class Redis cache
+    class Nginx loadbalancer
+```
+
+## Technical Specifications
 
 * **Backend**: Spring Boot
 * **Queue:** Redis
