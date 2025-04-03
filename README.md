@@ -105,151 +105,19 @@ flowchart TD
    make down
    ```
 
+### API Endpoints
+
+Download the Postman collection and environment for testing the APIs.
+
+[Postman Collection](docs/postman/distributed-job-queue.postman_collection.json)
+[Postman Environment](docs/postman/distributed-job-queue.postman_environment.json)
+
 ### Monitoring and Troubleshooting
 
 #### Logs
 
 - Producer service logs: `docker logs -f distributed-job-queue-with-redis-and-spring_producer_1`
 - Worker service logs: `docker logs -f  distributed-job-queue-with-redis-and-spring_worker_1`
-
-## API Endpoints
-
-#### Create a Job
-
-Request:
-
-```curl
-curl --location 'http://localhost:8090/producer/api/v1/job/create' \
---header 'Content-Type: application/json' \
---data '{
-    "priority": "HIGH",
-    "type": "PAYMENT_PROCESSING",
-    "dependencies": [],
-    "payload": "test",
-    "maxAttemptCount": 3
-}'
-```
-
-#### Get Jobs with Pagination
-
-Request:
-
-```curl
-curl --location 'http://localhost:8090/producer/api/v1/jobs?page=0&size=10' \
---header 'Content-Type: application/json'
-```
-
-Response:
-
-```json
-{
-  "message": "Operation Successful.",
-  "code": 200,
-  "data": [
-    {
-      "id": "0195e719-9c73-7e08-bdf3-a3d01433c344",
-      "priority": "HIGH",
-      "status": "COMPLETED",
-      "type": "PAYMENT_PROCESSING",
-      "dependents": [],
-      "dependencies": [],
-      "result": "Job completed successfully",
-      "errorMessage": null,
-      "currentProgress": 100,
-      "currentAttemptCount": 1,
-      "maxAttemptCount": 3,
-      "startedAt": "2025-03-30T18:49:40.064995",
-      "completedAt": "2025-03-30T18:50:40.183834"
-    }
-  ]
-}
-```
-
-#### Get Job Summary
-
-Request:
-
-```curl
-curl --location 'http://localhost:8090/producer/api/v1/dashboard/jobs/summary' \
---header 'Content-Type: application/json'
-```
-
-Response:
-
-```json
-{
-  "message": "Operation Successful.",
-  "code": 200,
-  "data": {
-    "TOTAL": 15,
-    "COMPLETED": 14,
-    "FAILED": 0,
-    "PROCESSING": 0,
-    "CANCELED": 1,
-    "PENDING": 0,
-    "DEAD": 0
-  }
-}
-```
-
-#### Get System Metrics
-
-Request:
-
-```curl
-curl --location 'http://localhost:8090/producer/api/v1/dashboard/metrics' \
---header 'Content-Type: application/json'
-```
-
-Response:
-
-```json
-{
-  "message": "Operation Successful.",
-  "code": 200,
-  "data": {
-    "activeWorkers": 1,
-    "queues": {
-      "LOW_PRIORITY_QUEUE_LENGTH": 0,
-      "DEAD_LETTER_QUEUE_LENGTH": 0,
-      "HIGH_PRIORITY_QUEUE_LENGTH": 0,
-      "MEDIUM_PRIORITY_QUEUE_LENGTH": 0
-    },
-    "workers": [
-      {
-        "workerId": "0195e0b7-1113-70f4-beaa-85dbf9cfaad7",
-        "cpuLoad": 0.7734375,
-        "memoryUsagePercentage": 74.73899267053092,
-        "availableProcessors": 4,
-        "heapMemoryUsage": 71285944,
-        "maxHeapMemory": 2025848832,
-        "timestamp": 1743233510001
-      }
-    ]
-  }
-}
-```
-
-#### Revive Dead Jobs
-
-Request:
-
-```curl
-curl --location --request POST 'http://localhost:8090/producer/api/v1/jobs/revive' \
---header 'Content-Type: application/json'
-```
-
-Response:
-
-```json
-{
-  "message": "Successfully revived 1 dead jobs",
-  "code": 200,
-  "data": [
-    "0195e095-670d-7633-bdde-f830a1f09d74"
-  ]
-}
-```
 
 ## Future Enhancements
 

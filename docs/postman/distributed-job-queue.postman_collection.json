@@ -1,0 +1,366 @@
+{
+	"info": {
+		"_postman_id": "91ff588e-bd94-4b54-84cd-4f997dd4a81b",
+		"name": "job-queue",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29283168"
+	},
+	"item": [
+		{
+			"name": "create",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"priority\": \"HIGH\",\n    \"type\": \"PAYMENT_PROCESSING\",\n    \"dependencies\": [],\n    \"payload\": \"test\",\n    \"maxAttemptCount\": 3\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/job/create",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"job",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get all jobs",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/jobs?page=0&size=10",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"jobs"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "reviveDeadJobs",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/jobs/revive",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"jobs",
+						"revive"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getJobsSummary",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/dashboard/jobs/summary",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"dashboard",
+						"jobs",
+						"summary"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getSystemMetrics",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/dashboard/metrics",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"dashboard",
+						"metrics"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get job by id",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/job?id=0195f5b2-c7b5-797f-b24c-066226a88492",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"job"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "0195f5b2-c7b5-797f-b24c-066226a88492"
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "get job by id",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local-producer}}/api/job/get?id=0195bab4-8155-771d-8ef5-fb316d27ae93",
+							"host": [
+								"{{local-producer}}"
+							],
+							"path": [
+								"api",
+								"job",
+								"get"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "0195bab4-8155-771d-8ef5-fb316d27ae93"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Date",
+							"value": "Fri, 21 Mar 2025 21:56:57 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=60"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"message\": \"Operation Successful.\",\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"0195bab4-8155-771d-8ef5-fb316d27ae93\",\n        \"priority\": \"HIGH\",\n        \"status\": \"COMPLETED\",\n        \"type\": \"PAYMENT_PROCESSING\",\n        \"result\": \"Job completed successfully\",\n        \"errorMessage\": null,\n        \"currentProgress\": 100,\n        \"currentRetryAttemptCount\": 1,\n        \"maxRetryAttemptCount\": 3,\n        \"startedAt\": \"2025-03-22T03:55:50.366328\",\n        \"completedAt\": \"2025-03-22T03:56:50.482435\"\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "cancel",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{local-producer}}/api/v1/job/cancel?id=0195dc3c-82ef-7af7-8cda-5c4625f09154",
+					"host": [
+						"{{local-producer}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"job",
+						"cancel"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "0195dc3c-82ef-7af7-8cda-5c4625f09154"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
