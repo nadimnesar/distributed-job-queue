@@ -62,7 +62,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
         double memoryUsage = (double) (totalMemory - freeMemory) / totalMemory;
 
         return WorkerHealth.builder()
-                .workerId(workerContext.workerId())
+                .id(workerContext.workerId())
                 .cpuLoad(cpuLoad)
                 .memoryUsagePercentage(memoryUsage * 100)
                 .availableProcessors(osBean.getAvailableProcessors())

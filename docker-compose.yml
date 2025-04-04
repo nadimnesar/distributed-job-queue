@@ -4,8 +4,8 @@ x-service-defaults: &service-defaults
     - app-network
 
 x-common-env: &common-env
-    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_queue_db
-    SPRING_REDIS_HOST: redis_queue
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_queue_db
+  SPRING_REDIS_HOST: redis_queue
 
 services:
   nginx:
@@ -29,6 +29,8 @@ services:
     environment:
       <<: *common-env
       SERVER_PORT: 8080
+    volumes:
+      - ./docs/logs:/logs
     deploy:
       replicas: 3
 
@@ -40,6 +42,8 @@ services:
     environment:
       <<: *common-env
       SERVER_PORT: 8085
+    volumes:
+      - ./docs/logs:/logs
     deploy:
       replicas: 5
 
