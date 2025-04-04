@@ -1,10 +1,8 @@
 package com.nadimnesar.jobqueue.worker.config;
 
-import com.github.f4b6a3.uuid.UuidCreator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,9 +16,9 @@ public class AppConfig {
 
     @Bean
     public WorkerContext workerContext() {
-        return new WorkerContext(UuidCreator.getTimeOrderedEpoch());
+        return new WorkerContext(System.getProperty("hostname"));
     }
 
-    public record WorkerContext(UUID workerId) {
+    public record WorkerContext(String hostname) {
     }
 }
