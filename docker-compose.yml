@@ -29,7 +29,7 @@ services:
     environment:
       <<: *common-env
       SERVER_PORT: 8080
-      LOGGING_FILE_NAME: /logs/producer-$${hostname}.log
+      LOGGING_FILE_NAME: /logs/producer-$${instance-id}.log
     volumes:
       - ./docs/logs:/logs
     deploy:
@@ -43,7 +43,7 @@ services:
     environment:
       <<: *common-env
       SERVER_PORT: 8085
-      LOGGING_FILE_NAME: /logs/worker-$${hostname}.log
+      LOGGING_FILE_NAME: /logs/worker-$${instance-id}.log
     volumes:
       - ./docs/logs:/logs
     deploy:
