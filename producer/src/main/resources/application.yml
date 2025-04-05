@@ -23,7 +23,7 @@ spring:
 
 logging:
   file:
-    name: ${LOGGING_FILE_NAME:docs/logs/producer-local.log}
+    name: ${LOGGING_FILE_NAME:docs/logs/producer-${hostname}.log}
   logback:
     rollingpolicy:
       max-file-size: 10MB
