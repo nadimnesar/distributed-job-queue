@@ -23,13 +23,13 @@ spring:
 
 logging:
   file:
-    name: ${LOGGING_FILE_NAME:docs/logs/producer-local.log}
+    name: ${LOGGING_FILE_NAME:docs/logs/producer-${instance-id}.log}
   logback:
     rollingpolicy:
       max-file-size: 10MB
       max-history: 30
   pattern:
-    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){cyan} %clr([%thread]){magenta} %clr(%-5level){yellow} %clr(%logger{36}){green} - %clr([producer:%property{hostname}]){blue} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [producer:%property{hostname}] - %msg%n"
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){cyan} %clr([%thread]){magenta} %clr(%-5level){yellow} %clr(%logger{36}){green} - %clr([producer:%property{instance-id}]){blue} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [producer:%property{instance-id}] - %msg%n"
   level:
     root: INFO

@@ -29,16 +29,16 @@ public class HeartBeatServiceImpl implements HeartBeatService {
     @Override
     @Scheduled(cron = "${schedule.cron.heartbeat}")
     public void sendHeartbeat() {
-        var workerHostname = workerContext.hostname();
+        var workerId = workerContext.id();
 
-        if (workerHostname == null) {
-            logger.warn("Worker hostname is not initialized. Skipping heartbeat.");
+        if (workerId == null) {
+            logger.warn("Worker id is not initialized. Skipping heartbeat.");
             return;
         }
 
-        logger.debug("Sending heartbeat for worker: {}, at: {}", workerHostname, LocalDateTime.now());
+        logger.debug("Sending heartbeat for worker: {}, at: {}", workerId, LocalDateTime.now());
         try {
-            String key = RedisConstant.REDIS_WORKER_HEALTH_KEY_PREFIX + workerHostname +
+            String key = RedisConstant.REDIS_WORKER_HEALTH_KEY_PREFIX + workerId +
                     RedisConstant.REDIS_WORKER_HEALTH_KEY_SUFFIX;
 
             RBucket<WorkerHealth> bucket = redissonClient.getBucket(key);
@@ -46,9 +46,9 @@ public class HeartBeatServiceImpl implements HeartBeatService {
             WorkerHealth health = collectHealthMetrics();
             bucket.set(health, Duration.ofSeconds(10));
 
-            logger.debug("Heartbeat sent for worker: {}", workerHostname);
+            logger.debug("Heartbeat sent for worker: {}", workerId);
         } catch (Exception e) {
-            logger.error("Failed to send heartbeat, worker: {}, error: {}", workerHostname, e.getMessage(), e);
+            logger.error("Failed to send heartbeat, worker: {}, error: {}", workerId, e.getMessage(), e);
         }
     }
 
@@ -62,7 +62,7 @@ public class HeartBeatServiceImpl implements HeartBeatService {
         double memoryUsage = (double) (totalMemory - freeMemory) / totalMemory;
 
         return WorkerHealth.builder()
-                .hostname(workerContext.hostname())
+                .id(workerContext.id())
                 .cpuLoad(cpuLoad)
                 .memoryUsagePercentage(memoryUsage * 100)
                 .availableProcessors(osBean.getAvailableProcessors())

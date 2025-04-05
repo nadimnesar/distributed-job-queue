@@ -54,16 +54,18 @@ flowchart TD
     Decision1 -->|No| Decision2{Limit Exceeded?}
     Decision2 -->|Yes: DeadLetterQueue| Redis
     Decision2 -->|No| Redis
+    
     classDef producer fill: #8E44AD, stroke: #6C3483, color: white, stroke-width: 2px, font-weight: bold
     classDef worker fill: #F57C00, stroke: #E65100, color: white, stroke-width: 2px, font-weight: bold
     classDef database fill: #336791, stroke: #274472, color: white, stroke-width: 2px, font-weight: bold, stroke-dasharray: 5 2
     classDef cache fill: #D32F2F, stroke: #B71C1C, color: white, stroke-width: 2px, font-weight: bold, stroke-dasharray: 5 2
     classDef loadbalancer fill: #388E3C, stroke: #2E7D32, color: white, stroke-width: 2px, font-weight: bold
-class Producer1,Producer2,Producer3 producer
-class Worker1,Worker2,Worker3,Worker4,Worker5 worker
-class PostgreSQL database
-class Redis cache
-class Nginx loadbalancer
+    
+    class Producer1,Producer2,Producer3 producer
+    class Worker1,Worker2,Worker3,Worker4,Worker5 worker
+    class PostgreSQL database
+    class Redis cache
+    class Nginx loadbalancer
 ```
 
 ## Technical Specifications
@@ -116,8 +118,8 @@ Use the following commands to view logs in real-time:
 ```bash
 # View log files for all producer instances
 ls docs/logs/producer-*.log
-# View logs for a specific producer instance
-tail -f docs/logs/producer-local.log
+# View logs for a specific producer instance (example: producer-062f8e6e-f23)
+tail -f docs/logs/producer-062f8e6e-f23.log
 ```
 
 ## Future Enhancements

@@ -16,9 +16,9 @@ public class AppConfig {
 
     @Bean
     public WorkerContext workerContext() {
-        return new WorkerContext(System.getProperty("hostname"));
+        return new WorkerContext(System.getProperty("instance-id"));
     }
 
-    public record WorkerContext(String hostname) {
+    public record WorkerContext(String id) {
     }
 }

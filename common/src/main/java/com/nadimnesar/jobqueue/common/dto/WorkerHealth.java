@@ -14,7 +14,7 @@ public class WorkerHealth implements Serializable {
     @Serial
     private static final long serialVersionUID = 5378180751100751593L;
 
-    private String hostname;
+    private String id;
     private double cpuLoad;
     private double memoryUsagePercentage;
     private int availableProcessors;
