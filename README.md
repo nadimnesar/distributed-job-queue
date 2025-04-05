@@ -118,8 +118,8 @@ Use the following commands to view logs in real-time:
 ```bash
 # View log files for all producer instances
 ls docs/logs/producer-*.log
-# View logs for a specific producer instance (example: producer-4de56afcfb28)
-tail -f docs/logs/producer-4de56afcfb28.log
+# View logs for a specific producer instance (example: producer-062f8e6e-f23)
+tail -f docs/logs/producer-062f8e6e-f23.log
 ```
 
 ## Future Enhancements
