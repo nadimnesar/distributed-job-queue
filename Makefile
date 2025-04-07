@@ -4,7 +4,7 @@
 up: build down data-up migrate docker-up
 
 # Up for local development
-up-local: down data-up migrate
+up-local: build down data-up migrate
 
 # Build and package the application (skipping tests)
 build:
@@ -31,7 +31,7 @@ docker-up:
 rollback:
 	mvn -pl producer liquibase:rollback -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres -Dliquibase.rollbackCount=1
 
-# Clear everyting
+# Clear everything
 clear:
 	@if [ -n "$$(docker ps -aq)" ]; then docker rm -f $$(docker ps -aq); fi
 	@if [ -n "$$(docker images -aq)" ]; then docker rmi -f $$(docker images -aq); fi

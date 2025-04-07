@@ -16,7 +16,7 @@ public class AppConfig {
 
     @Bean
     public WorkerContext workerContext() {
-        return new WorkerContext(System.getProperty("instance-id"));
+        return new WorkerContext(System.getProperty("instance_id"));
     }
 
     public record WorkerContext(String id) {

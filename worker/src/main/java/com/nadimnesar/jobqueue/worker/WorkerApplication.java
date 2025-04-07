@@ -11,7 +11,7 @@ import java.util.UUID;
 public class WorkerApplication {
     public static void main(String[] args) {
         // Set a unique instance id for the worker
-        System.setProperty("instance-id", UUID.randomUUID().toString().substring(0, 12));
+        System.setProperty("instance_id", UUID.randomUUID().toString().substring(0, 12));
 
         SpringApplication.run(WorkerApplication.class, args);
     }

@@ -9,9 +9,8 @@ import java.util.UUID;
 public class ProducerApplication {
     public static void main(String[] args) {
         // Set a unique instance id for the producer
-        System.setProperty("instance-id", UUID.randomUUID().toString().substring(0, 12));
+        System.setProperty("instance_id", UUID.randomUUID().toString().substring(0, 12));
 
-        // Start the Spring Boot application
         SpringApplication.run(ProducerApplication.class, args);
     }
 }
