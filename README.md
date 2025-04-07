@@ -106,8 +106,8 @@ flowchart TD
 
 Download the Postman collection and environment for testing the APIs.
 
-[Postman Collection](docs/postman/distributed-job-queue.postman_collection.json)
-[Postman Environment](docs/postman/distributed-job-queue.postman_environment.json)
+[Postman Collection](https://raw.githubusercontent.com/nadimnesar/distributed-job-queue-with-redis-and-spring/dev/docs/postman/distributed-job-queue.postman_collection.json)
+[Postman Environment](https://raw.githubusercontent.com/nadimnesar/distributed-job-queue-with-redis-and-spring/dev/docs/postman/distributed-job-queue.postman_environment.json)
 
 ### Logs
 
