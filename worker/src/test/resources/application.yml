@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: worker
+  datasource:
+    url: jdbc:postgresql://localhost:6000/job_queue_db
+    username: postgres
+    password: postgres
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+schedule:
+  cron:
+    consume: "*/10 * * * * *"
+    retry: "0 */3 * * * *"
+    heartbeat: "*/5 * * * * *"
