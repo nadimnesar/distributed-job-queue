@@ -17,21 +17,22 @@
     </modules>
 
     <properties>
-        <java.version>21</java.version>
+        <!-- Project -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <maven.plugin.compiler.version>3.11.0</maven.plugin.compiler.version>
         <spring.boot.version>3.4.4</spring.boot.version>
 
+        <!-- Common -->
         <common.module.version>0.0.1-SNAPSHOT</common.module.version>
         <lombok.version>1.18.36</lombok.version>
         <postgresql.version>42.7.5</postgresql.version>
-        <liquibase.version>4.19.0</liquibase.version>
-        <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
-        <uuid.creator.version>6.0.0</uuid.creator.version>
-        <redisson.version>3.45.1</redisson.version>
+
+        <!-- Common for Test -->
+        <h2.database.version>2.3.232</h2.database.version>
+        <mockito.version>5.17.0</mockito.version>
+        <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -58,20 +59,17 @@
                 <artifactId>postgresql</artifactId>
                 <version>${postgresql.version}</version>
             </dependency>
+
+            <!-- For Testing -->
             <dependency>
-                <groupId>org.liquibase</groupId>
-                <artifactId>liquibase-core</artifactId>
-                <version>${liquibase.version}</version>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.database.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.f4b6a3</groupId>
-                <artifactId>uuid-creator</artifactId>
-                <version>${uuid.creator.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.redisson</groupId>
-                <artifactId>redisson-spring-boot-starter</artifactId>
-                <version>${redisson.version}</version>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -86,13 +84,8 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven.plugin.compiler.version}</version>
-                    <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                        <parameters>true</parameters>
-                    </configuration>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

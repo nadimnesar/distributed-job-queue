@@ -14,6 +14,11 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>producer</name>
 
+    <properties>
+        <liquibase.version>4.19.0</liquibase.version>
+        <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.nadimnesar.jobqueue</groupId>
@@ -39,10 +44,23 @@
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
+            <version>${liquibase.version}</version>
         </dependency>
+
+        <!-- For Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -52,7 +70,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
                 <configuration>
                     <mainClass>com.nadimnesar.jobqueue.producer.ProducerApplication</mainClass>
                     <layout>JAR</layout>
@@ -75,6 +92,13 @@
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <version>${liquibase.maven.plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
