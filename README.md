@@ -8,15 +8,16 @@ and handles job dependencies and failures gracefully.
 
 ### Features
 
-- Deploy multiple worker/producer nodes across different machines.
-- Load balancing producer requests using Nginx.
+- Deploy multiple worker and producer nodes across different machines.
+- Use Nginx to load balance producer requests.
 - Enqueue jobs with priorities for efficient task processing.
-- Directed Acyclic graph (DAG) based dependency management ensure proper execution order.
+- Use Directed Acyclic Graph (DAG) based dependency management to ensure proper execution order.
 - Track job statuses and support job cancellation.
 - Support proper distributed locking to prevent duplicate job processing.
+- Support virtual threads for concurrent job execution.
 - Automatic retry mechanism for failed jobs.
-- Dead Letter Queue (DLQ) for unprocessable jobs and supports revive dead jobs.
-- Provide monitoring APIs for worker system metrics.
+- Dead Letter Queue (DLQ) for unprocessable jobs and support revive dead jobs.
+- Monitoring APIs for worker system metrics.
 
 ## System Design
 
@@ -50,7 +51,7 @@ flowchart TD
     Workers --> Decision1{Successful?}
     Decision1 -->|Yes| Done([Done])
     Decision1 -->|No| Decision2{Limit Exceeded?}
-    Decision2 -->|Yes: DeadLetterQueue| Redis
+    Decision2 -->|Yes: Move to DLQ| Redis
     Decision2 -->|No| Redis
     
     classDef producer fill: #8E44AD, stroke: #6C3483, color: white, stroke-width: 2px, font-weight: bold
