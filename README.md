@@ -6,19 +6,17 @@ This project implements a scalable distributed job queue system using Redis and 
 distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault tolerance,
 and handles job dependencies and failures gracefully.
 
-### Requirements
+### Features
 
-* **Producer:**
-    - Enqueue jobs with priorities and dependencies.
-    - Track job statuses: Pending, Processing, Completed, Failed, and Canceled.
-    - Support job cancellation and provide an API to revive dead jobs.
-* **Worker:**
-    - Deploy multiple worker nodes across different machines.
-    - Dynamically scale based on queue length.
-    - Track job progress and handle failures.
-    - Use a Dead Letter Queue (DLQ) for unprocessable jobs.
-    - Implement an automatic retry mechanism.
-    - Provide monitoring APIs for worker system metrics.
+- Deploy multiple worker/producer nodes across different machines.
+- Load balancing producer requests using Nginx.
+- Enqueue jobs with priorities for efficient task processing.
+- Directed Acyclic graph (DAG) based dependency management ensure proper execution order.
+- Track job statuses and support job cancellation.
+- Support proper distributed locking to prevent duplicate job processing.
+- Automatic retry mechanism for failed jobs.
+- Dead Letter Queue (DLQ) for unprocessable jobs and supports revive dead jobs.
+- Provide monitoring APIs for worker system metrics.
 
 ## System Design
 
@@ -118,8 +116,8 @@ Use the following commands to view logs in real-time:
 ```bash
 # View log files for all producer instances
 ls docs/logs/producer-*.log
-# View logs for a specific producer instance (example: producer-062f8e6e-f23)
-tail -f docs/logs/producer-062f8e6e-f23.log
+# View logs for a specific producer instance (example: producer-062f8e6ef23)
+tail -f docs/logs/producer-062f8e6ef23.log
 ```
 
 ## Future Enhancements
