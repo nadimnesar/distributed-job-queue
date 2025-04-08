@@ -1,19 +1,24 @@
 spring:
   application:
-    name: worker
+    name: worker-test
   datasource:
-    url: jdbc:postgresql://localhost:6000/job_queue_db
-    username: postgres
-    password: postgres
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
-    open-in-view: false
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
   data:
     redis:
       host: localhost
       port: 6379
+      database: 1 # Production uses 0 by default
 
 schedule:
   cron:
