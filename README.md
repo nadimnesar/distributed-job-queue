@@ -80,8 +80,7 @@ flowchart TD
 ### Prerequisites
 
 * Java 21
-* Maven
-* Docker & Docker Compose
+* Docker 20.10.13 or higher
 
 ### Build and Run the Project
 
