@@ -8,28 +8,28 @@ up-local: build down data-up migrate
 
 # Build and package the application (skipping tests)
 build:
-	mvn clean install -DskipTests
+	./mvnw clean install -DskipTests
 
 # Stop all running containers and remove orphaned containers
 down:
-	docker-compose down --remove-orphans
-	docker-compose -f docker-compose-data.yml down --remove-orphans
+	docker compose down --remove-orphans
+	docker compose -f docker-compose-data.yml down --remove-orphans
 
 # Start the database and redis container
 data-up:
-	docker-compose -f docker-compose-data.yml up -d --build
+	docker compose -f docker-compose-data.yml up -d --build
 
 # Apply Liquibase database migrations to Postgres
 migrate:
-	mvn -pl producer liquibase:update -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres
+	./mvnw -pl producer liquibase:update -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres
 
 # Start application containers using docker-compose
 docker-up:
-	docker-compose up -d --build
+	docker compose up -d --build
 
 # Rollback the last Liquibase database migration to Postgres
 rollback:
-	mvn -pl producer liquibase:rollback -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres -Dliquibase.rollbackCount=1
+	./mvnw -pl producer liquibase:rollback -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres -Dliquibase.rollbackCount=1
 
 # Clear everything
 clear:
