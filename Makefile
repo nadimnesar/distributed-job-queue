@@ -8,7 +8,7 @@ up-local: build down data-up migrate
 
 # Build and package the application (skipping tests)
 build:
-	./mvnw clean install
+	./mvnw clean install -DskipTests
 
 # Stop all running containers and remove orphaned containers
 down:

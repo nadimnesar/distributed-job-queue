@@ -26,6 +26,7 @@ public class JobRequest {
     @NotNull(message = "Job type cannot be null")
     private JobType type;
 
+    @Builder.Default
     private Set<UUID> dependencies = new HashSet<>();
 
     @NotBlank(message = "Payload cannot be blank")
