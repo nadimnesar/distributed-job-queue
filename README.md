@@ -21,7 +21,7 @@ and handles job dependencies and failures gracefully.
 
 ## System Design
 
-![Distributed Job Queue System Design](docs/postman/distributed-job-queue.svg)
+![Distributed Job Queue System Design](docs/distributed-job-queue.svg)
 
 ## Technical Specifications
 
