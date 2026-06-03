@@ -1,4 +1,4 @@
-# Distributed Job Queue System with Redis and Spring Boot
+# Distributed Job Queue
 
 ## Overview
 
@@ -30,17 +30,25 @@ This project implements a scalable distributed job queue system using RabbitMQ a
 
 ## Technical Specifications
 
-* **Backend**: Spring Boot
-* **Queue:** RabbitMQ
-* **Database:** PostgreSQL
-* **Database Migration:** Liquibase
+* **Backend**: Spring Boot 4.0.6
+* **Runtime**: Java 25
+* **Message Queue**: RabbitMQ
+* **Database**: PostgreSQL
+* **Connection Pooling**: PgBouncer
+* **Database Migration**: Liquibase
+* **Build Tool**: Maven (multi-module)
+* **Orchestration**: Kubernetes
+* **Logging Pipeline**: Fluent Bit → Logstash → Elasticsearch → Kibana
 
 ## Getting Started
 
 ### Prerequisites
 
 * Java 25
-* Docker 20.10.13 or higher
+* Maven 3.9+
+* Docker
+* kubectl
+* Minikube
 
 ### Build and Run the Project
 
