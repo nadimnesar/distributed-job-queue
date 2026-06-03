@@ -146,6 +146,15 @@ data:
           }
         }
       ],
+      "permissions": [
+        {
+          "user": "admin",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
       "bindings": [
         {
           "source": "main.exchange",
