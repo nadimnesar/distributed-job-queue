@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: distributed-job-queue
+spec:
+  serviceName: rabbitmq-headless
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: rabbitmq
+
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.12-management
+
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+
+          env:
+            - name: RABBITMQ_ERLANG_COOKIE
+              value: "secretcookie"
+
+            - name: RABBITMQ_DEFAULT_USER
+              value: "admin"
+
+            - name: RABBITMQ_DEFAULT_PASS
+              value: "admin"
+
+            - name: RABBITMQ_USE_LONGNAME
+              value: "true"
+
+            - name: RABBITMQ_LOAD_DEFINITIONS
+              value: /etc/rabbitmq/definitions.json
+
+            - name: K8S_SERVICE_NAME
+              value: rabbitmq-headless
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+
+            - name: definitions
+              mountPath: /etc/rabbitmq
+
+      volumes:
+        - name: definitions
+          configMap:
+            name: rabbitmq-definitions
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

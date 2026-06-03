@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: distributed-job-queue
+data:
+  definitions.json: |
+    {
+      "vhosts": [
+        {
+          "name": "/"
+        }
+      ],
+      "exchanges": [
+        {
+          "name": "main.exchange",
+          "type": "direct",
+          "durable": true
+        },
+        {
+          "name": "retry.1.exchange",
+          "type": "direct",
+          "durable": true
+        },
+        {
+          "name": "retry.2.exchange",
+          "type": "direct",
+          "durable": true
+        },
+        {
+          "name": "retry.3.exchange",
+          "type": "direct",
+          "durable": true},
+        {
+          "name": "retry.4.exchange",
+          "type": "direct",
+          "durable": true
+        },
+        {
+          "name": "dlx.exchange",
+          "type": "direct",
+          "durable": true}
+      ],
+      "queues": [
+        {
+          "name": "main.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-dead-letter-exchange": "retry.1.exchange"
+          }
+        },
+        {
+          "name": "retry.1.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 10000,
+            "x-dead-letter-exchange": "main.exchange"
+          }
+        },
+        {
+          "name": "retry.2.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 30000,
+            "x-dead-letter-exchange": "main.exchange"
+          }
+        },
+        {
+          "name": "retry.3.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 120000,
+            "x-dead-letter-exchange": "main.exchange"
+          }
+        },
+        {
+          "name": "retry.4.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 600000,
+            "x-dead-letter-exchange": "dlx.exchange"
+          }
+        },
+        {
+          "name": "dlq.queue",
+          "durable": true,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "source": "main.exchange",
+          "destination": "main.queue",
+          "destination_type": "queue"
+        },
+        {
+          "source": "retry.1.exchange",
+          "destination": "retry.1.queue",
+          "destination_type": "queue"
+        },
+        {
+          "source": "retry.2.exchange",
+          "destination": "retry.2.queue",
+          "destination_type": "queue"
+        },
+        {
+          "source": "retry.3.exchange",
+          "destination": "retry.3.queue",
+          "destination_type": "queue"
+        },
+        {
+          "source": "retry.4.exchange",
+          "destination": "retry.4.queue",
+          "destination_type": "queue"
+        },
+        {
+          "source": "dlx.exchange",
+          "destination": "dlq.queue",
+          "destination_type": "queue"
+        }
+      ]
+    }
