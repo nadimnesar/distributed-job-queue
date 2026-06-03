@@ -5,9 +5,17 @@ spring:
   application:
     name: producer
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:6000/job_queue_db}
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.49.2:30432/appdb?prepareThreshold=0}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:appuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:apppass}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:300000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:600000}
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:30000}
+      keepalive-time: ${HIKARI_KEEPALIVE_TIME:120000}
   jpa:
     open-in-view: false
     hibernate:
@@ -16,10 +24,21 @@ spring:
   liquibase:
     enabled: false
     change-log: src/main/resources/db/master.json
-  data:
-    redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: 6379
+  rabbitmq:
+    host: ${RABBITMQ_HOST:192.168.49.2}
+    port: ${RABBITMQ_PORT:30672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        retry:
+          enabled: false
+    template:
+      mandatory: true
+    publisher-confirm-type: correlated
 
 logging:
   file:

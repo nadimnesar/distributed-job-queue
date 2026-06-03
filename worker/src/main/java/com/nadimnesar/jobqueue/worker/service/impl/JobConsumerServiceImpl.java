@@ -1,7 +1,6 @@
 package com.nadimnesar.jobqueue.worker.service.impl;
 
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
-import com.nadimnesar.jobqueue.common.service.RedisQueueService;
 import com.nadimnesar.jobqueue.worker.service.JobConsumerService;
 import com.nadimnesar.jobqueue.worker.service.JobProcessorService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,6 @@ import java.util.concurrent.ExecutorService;
 public class JobConsumerServiceImpl implements JobConsumerService {
     private static final Logger logger = LoggerFactory.getLogger(JobConsumerServiceImpl.class);
 
-    private final RedisQueueService redisQueueService;
     private final JobQueueService jobQueueService;
     private final JobProcessorService jobProcessorService;
     private final ExecutorService virtualThreadParTaskExecutor;
@@ -35,17 +33,9 @@ public class JobConsumerServiceImpl implements JobConsumerService {
 
         virtualThreadParTaskExecutor.submit(() -> {
             try {
-                boolean lockStatus = redisQueueService.acquireLock(jobId);
-                if (!lockStatus) {
-                    logger.info("Job {} is already being processed by another worker", jobId);
-                    return;
-                }
-
                 jobProcessorService.processJob(jobId);
             } catch (Exception e) {
                 logger.error("Error processing job {}: {}", jobId, e.getMessage(), e);
-            } finally {
-                redisQueueService.releaseLock(jobId);
             }
         });
     }

@@ -14,14 +14,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 1 # Production uses 0 by default
-
 schedule:
   cron:
     consume: "*/10 * * * * *"
     retry: "0 */3 * * * *"
     heartbeat: "*/5 * * * * *"
+
+app:
+  rabbitmq:
+    startup-check:
+      enabled: false
