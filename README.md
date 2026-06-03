@@ -2,22 +2,27 @@
 
 ## Overview
 
-This project implements a scalable distributed job queue system using RabbitMQ and Spring Boot, designed to efficiently
-distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault tolerance,
-and handles job dependencies and failures gracefully.
+This project implements a scalable distributed job queue system using RabbitMQ and Spring Boot, designed to efficiently distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault tolerance,and handles job dependencies and failures gracefully.
 
 ### Features
 
-- Deploy multiple worker and producer nodes across different machines.
-- Use Nginx to load balance producer requests.
-- Enqueue jobs with priorities for efficient task processing.
-- Use Directed Acyclic Graph (DAG) based dependency management to ensure proper execution order.
+- Deploy multiple worker and producer nodes across multiple machines using Kubernetes.
+- Use NGINX Ingress as the external entry point for all inbound traffic; no direct service exposure.
+- Apply rate limiting on producer requests via NGINX Ingress.
+- Load balance traffic across multiple producer replicas.
+- Enqueue jobs with priority support for efficient task processing.
+- Ensure reliable message delivery using publisher confirms.
+- Use Directed Acyclic Graph (DAG)-based dependency management to guarantee correct execution order.
 - Track job statuses and support job cancellation.
-- Support proper distributed locking to prevent duplicate job processing.
-- Support virtual threads for concurrent job execution.
-- Automatic retry mechanism for failed jobs.
-- Dead Letter Queue (DLQ) for unprocessable jobs and support revive dead jobs.
-- Monitoring APIs for worker system metrics.
+- Enable ACK/NACK-based message consumption for reliable processing.
+- Support virtual threads for high-concurrency job execution.
+- Implement delayed retries with exponential backoff using a queue-based delay mechanism.
+- Automatically scale worker replicas based on RabbitMQ queue length.
+- Provide fault tolerance using Dead Letter Queues (DLQ) for unprocessable jobs, with support for job recovery.
+- Integrate PgBouncer for efficient connection pooling across multiple producers and workers.
+- Maintain a highly available multi-node RabbitMQ cluster.
+- Implement a centralized logging pipeline (Fluent Bit → Logstash → Elasticsearch → Kibana) for observability.
+- Provide log aggregation, search, and visualization using Elasticsearch and Kibana.
 
 ## System Design
 
@@ -27,7 +32,6 @@ and handles job dependencies and failures gracefully.
 
 * **Backend**: Spring Boot
 * **Queue:** RabbitMQ
-* **Load Balancer:** Nginx
 * **Database:** PostgreSQL
 * **Database Migration:** Liquibase
 
