@@ -49,8 +49,8 @@ spec:
               mountPath: /var/lib/rabbitmq
 
             - name: definitions
-              mountPath: /etc/rabbitmq
-
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
       volumes:
         - name: definitions
           configMap:
@@ -60,7 +60,7 @@ spec:
     - metadata:
         name: data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
             storage: 10Gi
