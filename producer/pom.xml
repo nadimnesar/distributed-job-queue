@@ -13,11 +13,6 @@
     <artifactId>producer</artifactId>
     <name>producer</name>
 
-    <properties>
-        <liquibase.version>4.19.0</liquibase.version>
-        <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.nadimnesar.jobqueue</groupId>
@@ -39,11 +34,6 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
-            <version>${liquibase.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -95,11 +85,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.liquibase</groupId>
-                <artifactId>liquibase-maven-plugin</artifactId>
-                <version>${liquibase.maven.plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

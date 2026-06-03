@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+  namespace: distributed-job-queue
+  labels:
+    app: migration
+spec:
+  template:
+    metadata:
+      labels:
+        app: migration
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h pgbouncer -p 6432; do
+                echo "waiting for postgres..."
+                sleep 2
+              done
+      containers:
+        - name: migration
+          image: migration:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://pgbouncer:6432/appdb?prepareThreshold=0
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-users
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-users
+                  key: password
+  backoffLimit: 3

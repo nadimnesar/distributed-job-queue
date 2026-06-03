@@ -21,9 +21,6 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
-  liquibase:
-    enabled: false
-    change-log: src/main/resources/db/master.json
   rabbitmq:
     host: ${RABBITMQ_HOST:192.168.49.2}
     port: ${RABBITMQ_PORT:30672}

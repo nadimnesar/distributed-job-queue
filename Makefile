@@ -3,7 +3,7 @@ KUBECTL ?= kubectl
 K8S_DIR ?= k8s
 NAMESPACE ?= distributed-job-queue
 
-.PHONY: start status ip namespace apply delete pod svc delete-pvc delete-rabbitmq-pvc delete-postgres-pvc
+.PHONY: start status ip build namespace apply delete pod svc pvc
 
 start:
 	$(MINIKUBE) start
@@ -13,6 +13,13 @@ status:
 
 ip:
 	$(MINIKUBE) ip
+
+build:
+	mvn package -DskipTests
+	@eval $$($(MINIKUBE) docker-env) && \
+		docker build -t producer:latest ./producer && \
+		docker build -t worker:latest ./worker && \
+		docker build -t migration:latest ./migration
 
 namespace:
 	@$(KUBECTL) create namespace $(NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
@@ -29,5 +36,10 @@ svc:
 pvc:
 	$(KUBECTL) get pvc -n $(NAMESPACE)
 
+logs:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=migration
+
 delete:
 	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive
+
+restart: delete build apply
