@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements a scalable distributed job queue system using Redis and Spring Boot, designed to efficiently
+This project implements a scalable distributed job queue system using RabbitMQ and Spring Boot, designed to efficiently
 distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault tolerance,
 and handles job dependencies and failures gracefully.
 
@@ -26,7 +26,7 @@ and handles job dependencies and failures gracefully.
 ## Technical Specifications
 
 * **Backend**: Spring Boot
-* **Queue:** Redis
+* **Queue:** RabbitMQ
 * **Load Balancer:** Nginx
 * **Database:** PostgreSQL
 * **Database Migration:** Liquibase
@@ -35,7 +35,7 @@ and handles job dependencies and failures gracefully.
 
 ### Prerequisites
 
-* Java 21
+* Java 25
 * Docker 20.10.13 or higher
 
 ### Build and Run the Project

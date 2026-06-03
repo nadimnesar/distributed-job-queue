@@ -1,14 +1,30 @@
-apply:
-	kubectl apply -f k8s/ --recursive
+MINIKUBE ?= minikube
+KUBECTL ?= kubectl
+K8S_DIR ?= k8s
+NAMESPACE ?= distributed-job-queue
 
-delete:
-	kubectl delete -f k8s/ --recursive
+.PHONY: start status ip namespace apply delete pod svc
 
-pods:
-	kubectl get pods -n distributed-job-queue
+start:
+	$(MINIKUBE) start
 
-services:
-	kubectl get svc -n distributed-job-queue
+status:
+	$(MINIKUBE) status
 
 ip:
-	minikube ip
+	$(MINIKUBE) ip
+
+namespace:
+	@$(KUBECTL) create namespace $(NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
+
+apply: namespace
+	$(KUBECTL) apply -f $(K8S_DIR)/ --recursive
+
+pod:
+	$(KUBECTL) get pods -n $(NAMESPACE)
+
+svc:
+	$(KUBECTL) get svc -n $(NAMESPACE)
+
+delete:
+	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive

@@ -11,7 +11,6 @@
 
     <groupId>com.nadimnesar.jobqueue</groupId>
     <artifactId>producer</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>producer</name>
 
     <properties>
