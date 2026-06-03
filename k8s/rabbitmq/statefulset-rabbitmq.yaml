@@ -38,9 +38,6 @@ spec:
             - name: RABBITMQ_USE_LONGNAME
               value: "true"
 
-            - name: RABBITMQ_LOAD_DEFINITIONS
-              value: /etc/rabbitmq/definitions.json
-
             - name: K8S_SERVICE_NAME
               value: rabbitmq-headless
 
