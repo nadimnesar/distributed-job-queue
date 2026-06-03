@@ -5,6 +5,7 @@ metadata:
   namespace: distributed-job-queue
 spec:
   clusterIP: None
+  publishNotReadyAddresses: true
   selector:
     app: rabbitmq
   ports:
