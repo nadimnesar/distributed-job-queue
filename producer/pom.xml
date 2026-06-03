@@ -11,13 +11,7 @@
 
     <groupId>com.nadimnesar.jobqueue</groupId>
     <artifactId>producer</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>producer</name>
-
-    <properties>
-        <liquibase.version>4.19.0</liquibase.version>
-        <liquibase.maven.plugin.version>4.31.1</liquibase.maven.plugin.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -42,15 +36,19 @@
             <artifactId>postgresql</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
-            <version>${liquibase.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
         <!-- For Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -87,11 +85,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.liquibase</groupId>
-                <artifactId>liquibase-maven-plugin</artifactId>
-                <version>${liquibase.maven.plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

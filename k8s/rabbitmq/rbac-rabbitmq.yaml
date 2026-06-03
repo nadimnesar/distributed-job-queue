@@ -1,0 +1,33 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: distributed-job-queue
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq
+  namespace: distributed-job-queue
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq
+  namespace: distributed-job-queue
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq
+    namespace: distributed-job-queue
+roleRef:
+  kind: Role
+  name: rabbitmq
+  apiGroup: rbac.authorization.k8s.io

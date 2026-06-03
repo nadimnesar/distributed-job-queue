@@ -1,40 +1,45 @@
-# Makefile for managing Docker, Liquibase migrations, and build processes
+MINIKUBE ?= minikube
+KUBECTL ?= kubectl
+K8S_DIR ?= k8s
+NAMESPACE ?= distributed-job-queue
 
-# Build and start everything
-up: build down data-up migrate docker-up
+.PHONY: start status ip build namespace apply delete pod svc pvc
 
-# Up for local development
-up-local: build down data-up migrate
+start:
+	$(MINIKUBE) start
 
-# Build and package the application (skipping tests)
+status:
+	$(MINIKUBE) status
+
+ip:
+	$(MINIKUBE) ip
+
 build:
-	./mvnw clean install -DskipTests
+	mvn package -DskipTests
+	@eval $$($(MINIKUBE) docker-env) && \
+		docker build -t producer:latest ./producer && \
+		docker build -t worker:latest ./worker && \
+		docker build -t migration:latest ./migration
 
-# Stop all running containers and remove orphaned containers
-down:
-	docker compose down --remove-orphans
-	docker compose -f docker-compose-data.yml down --remove-orphans
+namespace:
+	@$(KUBECTL) create namespace $(NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
 
-# Start the database and redis container
-data-up:
-	docker compose -f docker-compose-data.yml up -d --build
+apply: namespace
+	$(KUBECTL) apply -f $(K8S_DIR)/ --recursive
 
-# Apply Liquibase database migrations to Postgres
-migrate:
-	./mvnw -pl producer liquibase:update -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres
+pod:
+	$(KUBECTL) get pods -n $(NAMESPACE)
 
-# Start application containers using docker-compose
-docker-up:
-	docker compose up -d --build
+svc:
+	$(KUBECTL) get svc -n $(NAMESPACE)
 
-# Rollback the last Liquibase database migration to Postgres
-rollback:
-	./mvnw -pl producer liquibase:rollback -Dliquibase.driver=org.postgresql.Driver -Dliquibase.changeLogFile=src/main/resources/db/master.json -Dliquibase.url=jdbc:postgresql://localhost:6000/job_queue_db -Dliquibase.username=postgres -Dliquibase.password=postgres -Dliquibase.rollbackCount=1
+pvc:
+	$(KUBECTL) get pvc -n $(NAMESPACE)
 
-# Clear everything
-clear:
-	@if [ -n "$$(docker ps -aq)" ]; then docker rm -f $$(docker ps -aq); fi
-	@if [ -n "$$(docker images -aq)" ]; then docker rmi -f $$(docker images -aq); fi
-	@if [ -n "$$(docker volume ls -q)" ]; then docker volume rm $$(docker volume ls -q); fi
-	@if [ -n "$$(docker network ls --filter "type=custom" -q)" ]; then docker network rm $$(docker network ls --filter "type=custom" -q); fi
-	@docker system prune -a --volumes -f
+logs:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=migration
+
+delete:
+	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive
+
+restart: delete build apply

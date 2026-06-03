@@ -1,0 +1,208 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: distributed-job-queue
+data:
+  definitions.json: |
+    {
+      "rabbit_version": "3.12.0",
+      "vhosts": [
+        {
+          "name": "/"
+        }
+      ],
+      "users": [
+        {
+          "name": "admin",
+          "password": "admin",
+          "tags": "administrator"
+        }
+      ],
+
+      "exchanges": [
+        {
+          "name": "main.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "retry.1.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "retry.2.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "retry.3.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "retry.4.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "dlx.exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ],
+      "queues": [
+        {
+          "name": "main.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-dead-letter-exchange": "retry.1.exchange",
+            "x-dead-letter-routing-key": ""
+          }
+        },
+        {
+          "name": "retry.1.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 10000,
+            "x-dead-letter-exchange": "main.exchange",
+            "x-dead-letter-routing-key": ""
+          }
+        },
+        {
+          "name": "retry.2.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 30000,
+            "x-dead-letter-exchange": "main.exchange",
+            "x-dead-letter-routing-key": ""
+          }
+        },
+        {
+          "name": "retry.3.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 120000,
+            "x-dead-letter-exchange": "main.exchange",
+            "x-dead-letter-routing-key": ""
+          }
+        },
+        {
+          "name": "retry.4.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-message-ttl": 600000,
+            "x-dead-letter-exchange": "dlx.exchange",
+            "x-dead-letter-routing-key": ""
+          }
+        },
+        {
+          "name": "dlq.queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        }
+      ],
+      "permissions": [
+        {
+          "user": "admin",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "main.exchange",
+          "vhost": "/",
+          "destination": "main.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        },
+        {
+          "source": "retry.1.exchange",
+          "vhost": "/",
+          "destination": "retry.1.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        },
+        {
+          "source": "retry.2.exchange",
+          "vhost": "/",
+          "destination": "retry.2.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        },
+        {
+          "source": "retry.3.exchange",
+          "vhost": "/",
+          "destination": "retry.3.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        },
+        {
+          "source": "retry.4.exchange",
+          "vhost": "/",
+          "destination": "retry.4.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        },
+        {
+          "source": "dlx.exchange",
+          "vhost": "/",
+          "destination": "dlq.queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        }
+      ]
+    }

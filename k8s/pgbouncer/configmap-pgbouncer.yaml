@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: distributed-job-queue
+data:
+  pgbouncer.ini: |
+    [databases]
+    appdb = host=postgres port=5432 dbname=appdb
+
+    [pgbouncer]
+    listen_port = 6432
+    listen_addr = 0.0.0.0
+    auth_type = plain
+    auth_file = /etc/pgbouncer/userlist.txt
+
+    pool_mode = transaction
+    max_client_conn = 1000
+    default_pool_size = 50
+    client_tls_sslmode = disable
