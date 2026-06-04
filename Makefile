@@ -40,5 +40,3 @@ logs:
 
 delete:
 	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive
-
-restart: delete build apply

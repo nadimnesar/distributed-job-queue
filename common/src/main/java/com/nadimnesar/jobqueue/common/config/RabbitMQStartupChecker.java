@@ -13,16 +13,16 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(prefix = "app.rabbitmq.startup-check", name = "enabled", havingValue = "true",
-        matchIfMissing = true)
-public class RabbitMqStartupChecker implements ApplicationRunner {
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMqStartupChecker.class);
+@ConditionalOnProperty(
+        prefix = "app.rabbitmq.startup-check", name = "enabled", havingValue = "true", matchIfMissing = true)
+public class RabbitMQStartupChecker implements ApplicationRunner {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMQStartupChecker.class);
 
     private final ConnectionFactory connectionFactory;
     private final RabbitProperties rabbitProperties;
     private final Environment environment;
 
-    public RabbitMqStartupChecker(ConnectionFactory connectionFactory,
+    public RabbitMQStartupChecker(ConnectionFactory connectionFactory,
                                   RabbitProperties rabbitProperties,
                                   Environment environment) {
         this.connectionFactory = connectionFactory;
@@ -34,7 +34,8 @@ public class RabbitMqStartupChecker implements ApplicationRunner {
     public void run(@NonNull ApplicationArguments args) {
         String appName = environment.getProperty("spring.application.name", "application");
         String host = rabbitProperties.getHost();
-        int port = rabbitProperties.getPort();
+        Integer portObj = rabbitProperties.getPort();
+        int port = portObj != null ? portObj : 5672;
         String virtualHost = rabbitProperties.getVirtualHost();
 
         logger.info("Checking RabbitMQ connection for {} at {}:{} (vhost={})", appName, host, port, virtualHost);

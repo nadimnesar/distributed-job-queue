@@ -23,8 +23,7 @@ import java.util.UUID;
 @Table(name = DbConstants.JobDependency.TABLE_NAME,
         uniqueConstraints = @UniqueConstraint(columnNames = {
                 DbConstants.JobDependency.JOB_ID, DbConstants.JobDependency.DEPENDENCY_ID
-        })
-)
+        }))
 public class JobDependencyEntity extends BaseEntity {
     @Column(name = DbConstants.JobDependency.JOB_ID, nullable = false)
     private UUID jobId;
