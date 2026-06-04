@@ -14,7 +14,7 @@ import java.util.UUID;
 @Repository
 public interface JobRepository extends JpaRepository<JobEntity, UUID> {
 
-    @Query("SELECT j FROM JobEntity j WHERE j.currentAttemptCount < j.maxAttemptCount " +
+    @Query("SELECT j FROM JobEntity j WHERE j.attemptCount < j.maxAttemptCount " +
             "AND j.status != 'CANCELED' AND j.status != 'COMPLETED' ORDER BY j.createdAt ASC")
     List<JobEntity> findJobsToRetry();
 
@@ -26,7 +26,7 @@ public interface JobRepository extends JpaRepository<JobEntity, UUID> {
             "j.createdAt ASC")
     Optional<JobEntity> findNextPendingJob();
 
-    @Query("SELECT j FROM JobEntity j WHERE j.status = 'FAILED' AND j.currentAttemptCount >= j.maxAttemptCount")
+    @Query("SELECT j FROM JobEntity j WHERE j.status = 'FAILED' AND j.attemptCount >= j.maxAttemptCount")
     List<JobEntity> findDeadLetterJobs();
 
     @Query("SELECT COUNT(j) FROM JobEntity j WHERE j.status = 'PENDING' AND j.priority = ?1")

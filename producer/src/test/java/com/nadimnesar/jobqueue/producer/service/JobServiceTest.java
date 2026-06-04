@@ -1,6 +1,7 @@
 package com.nadimnesar.jobqueue.producer.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.nadimnesar.jobqueue.common.constants.Constants;
 import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constants.enums.JobType;
@@ -59,16 +60,16 @@ public class JobServiceTest {
         var jobId = UuidCreator.getTimeOrderedEpoch();
         jobRequest = JobRequest.builder()
                 .priority(JobPriority.HIGH)
-                .type(JobType.PAYMENT_PROCESSING)
+                .type(JobType.EMAIL_SENDING)
                 .payload("test payload")
-                .maxAttemptCount(3)
+                .maxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT)
                 .dependencies(new HashSet<>())
                 .build();
 
         jobEntity = JobEntity.builder()
                 .id(jobId)
                 .priority(JobPriority.HIGH)
-                .type(JobType.PAYMENT_PROCESSING)
+                .type(JobType.EMAIL_SENDING)
                 .status(JobStatus.PENDING)
                 .payload("test payload")
                 .maxAttemptCount(3)

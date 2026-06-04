@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,7 +56,7 @@ public class JobProcessorServiceImpl implements JobProcessorService {
             return;
         }
 
-        if (job.getCurrentAttemptCount() >= job.getMaxAttemptCount() && !checkCanceled(job.getId())) {
+        if (job.getAttemptCount() >= job.getMaxAttemptCount() && !checkCanceled(job.getId())) {
             logger.warn("Max retry attempts reached for job with ID: {}", jobId);
             handleFailedJob(job, "Max retry attempts reached");
             jobQueueService.moveToDeadLetterQueue(jobId);
@@ -69,16 +70,11 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         try {
             AtomicBoolean cancellationFlag = new AtomicBoolean(false);
 
-            switch (job.getType()) {
-                case JobType.EMAIL_SENDING:
-                    processEmailSendingJob(job, cancellationFlag);
-                    break;
-                case JobType.PAYMENT_PROCESSING:
-                    processPaymentProcessingJob(job, cancellationFlag);
-                    break;
-                default:
-                    handleFailedJob(job, "Job type not supported");
-                    return;
+            if (Objects.requireNonNull(job.getType()) == JobType.EMAIL_SENDING) {
+                processEmailSendingJob(job, cancellationFlag);
+            } else {
+                handleFailedJob(job, "Job type not supported");
+                return;
             }
 
             if (!cancellationFlag.get()) {
@@ -104,12 +100,6 @@ public class JobProcessorServiceImpl implements JobProcessorService {
                     cancellationFlag.set(true);
                     return;
                 }
-
-                int progress = (step * 100) / totalSteps;
-                updateJobProgress(job, progress);
-
-                logger.info("Email sending job id {}, progress: {}%", job.getId(), progress);
-
                 Thread.sleep(waitTimeMs);
             }
         } catch (InterruptedException e) {
@@ -118,66 +108,30 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         }
     }
 
-    private void processPaymentProcessingJob(JobEntity job, AtomicBoolean cancellationFlag) {
-        logger.info("Processing payment processing job with ID: {}", job.getId());
-
-        try {
-            int totalSteps = 10;
-            int waitTimeMs = 6000; // 6 seconds per step, 10x6 = 60 seconds, total = 1 minutes
-
-            for (int step = 1; step <= totalSteps; step++) {
-
-                if (checkCanceled(job.getId())) {
-                    cancellationFlag.set(true);
-                    return;
-                }
-
-                int progress = (step * 100) / totalSteps;
-                updateJobProgress(job, progress);
-
-                logger.info("Payment processing job id {}, progress: {}%", job.getId(), progress);
-
-                Thread.sleep(waitTimeMs);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Payment processing job was interrupted: " + e.getMessage());
-        }
-    }
-
-    private void updateJobProgress(JobEntity job, int progress) {
-        job.setCurrentProgress(progress);
-        jobRepository.save(job);
-    }
-
     //In this implementation, job isn't resuming from the last progress, it's starting from 0% again.
     private void updateJobAsProcessing(JobEntity job) {
         job.setStatus(JobStatus.PROCESSING);
-        job.setCurrentProgress(0);
         job.setStartedAt(LocalDateTime.now());
-        job.setCurrentAttemptCount(job.getCurrentAttemptCount() + 1);
+        job.setAttemptCount(job.getAttemptCount() + 1);
         jobRepository.save(job);
     }
 
     private void handleFailedJob(JobEntity job, String reason) {
         job.setStatus(JobStatus.FAILED);
         job.setResult(null);
-        job.setCurrentProgress(0);
         job.setCompletedAt(null);
 
         if (job.getStartedAt() == null) {
             job.setStartedAt(LocalDateTime.now());
         }
 
-        job.setErrorMessage(reason != null ? reason : "Unknown error");
-
+        job.setResult(reason != null ? reason : "Unknown error");
         jobRepository.save(job);
     }
 
     private void handleCompletedJob(JobEntity job) {
         job.setStatus(JobStatus.COMPLETED);
         job.setResult("Job completed successfully");
-        job.setCurrentProgress(100);
 
         if (job.getCompletedAt() == null) {
             job.setCompletedAt(LocalDateTime.now());
@@ -186,8 +140,6 @@ public class JobProcessorServiceImpl implements JobProcessorService {
         if (job.getStartedAt() == null) {
             job.setStartedAt(LocalDateTime.now());
         }
-
-        job.setErrorMessage(null);
 
         jobDependencyService.informDependents(job.getId());
 

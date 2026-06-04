@@ -10,7 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
         long totalJobs = jobRepository.count();
         summary.put("TOTAL", totalJobs);
 
+        logger.info("TOTAL JOBS: {}", totalJobs);
         return CommonResponse.builder()
                 .data(summary)
                 .build();
@@ -43,6 +45,7 @@ public class DashboardServiceImpl implements DashboardService {
         Map<String, Long> queueMetrics = getQueueMetrics();
         metrics.put("queues", queueMetrics);
 
+        logger.info("QUEUES METRICS: {}", queueMetrics);
         return CommonResponse.builder()
                 .data(metrics)
                 .build();
