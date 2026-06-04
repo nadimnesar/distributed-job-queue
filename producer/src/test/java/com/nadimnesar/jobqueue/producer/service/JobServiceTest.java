@@ -196,7 +196,7 @@ public class JobServiceTest {
         var revivedJobIds = List.of(jobEntity.getId().toString());
         var revivedJobs = List.of(jobEntity);
 
-        when(jobQueueService.dequeueDeadLetterJobs()).thenReturn(revivedJobIds);
+        when(jobQueueService.consumeDeadLetters()).thenReturn(revivedJobIds);
         when(jobRepository.findAllById(any())).thenReturn(revivedJobs);
         when(jobRepository.saveAll(any())).thenReturn(revivedJobs);
 
@@ -209,7 +209,7 @@ public class JobServiceTest {
 
     @Test
     void reviveDeadJobs_NoAllDeadJobs() {
-        when(jobQueueService.dequeueDeadLetterJobs()).thenReturn(List.of());
+        when(jobQueueService.consumeDeadLetters()).thenReturn(List.of());
 
         CommonResponse response = jobService.reviveAllDeadJobs();
 

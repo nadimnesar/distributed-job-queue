@@ -48,7 +48,7 @@ public class JobRetryServiceImpl implements JobRetryService {
                 logger.info("Retrying job {}", job.getId());
 
                 try {
-                    jobQueueService.enqueueJob(job);
+                    jobQueueService.publish(job);
                     logger.info("Job {} retried successfully", job.getId());
                 } catch (Exception e) {
                     logger.error("Error occurred while retrying job {}", job.getId(), e);

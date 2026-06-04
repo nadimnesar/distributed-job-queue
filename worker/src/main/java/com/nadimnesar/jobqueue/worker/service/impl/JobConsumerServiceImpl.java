@@ -26,7 +26,7 @@ public class JobConsumerServiceImpl implements JobConsumerService {
     public void consumeJobs() {
         logger.info("Starting job consumption cycle, at: {}", LocalDateTime.now());
 
-        String jobId = jobQueueService.dequeueJob();
+        String jobId = jobQueueService.consume();
         if (jobId == null) {
             return;
         }

@@ -59,7 +59,7 @@ public class JobServiceImpl implements JobService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                jobQueueService.enqueueJob(savedJob);
+                jobQueueService.publish(savedJob);
             }
         });
 
@@ -238,7 +238,7 @@ public class JobServiceImpl implements JobService {
         logger.info("Starting to revive dead jobs");
 
         try {
-            List<String> revivedJobIds = jobQueueService.dequeueDeadLetterJobs();
+            List<String> revivedJobIds = jobQueueService.consumeDeadLetters();
 
             if (revivedJobIds.isEmpty()) {
                 logger.info("No dead jobs found to revive");
@@ -300,7 +300,7 @@ public class JobServiceImpl implements JobService {
                 .dependents(jobDependencyService.getDependents(jobEntity.getId()))
                 .dependencies(jobDependencyService.getDependencies(jobEntity.getId()))
                 .result(jobEntity.getResult())
-                .currentAttemptCount(jobEntity.getAttemptCount())
+                .attemptCount(jobEntity.getAttemptCount())
                 .maxAttemptCount(jobEntity.getMaxAttemptCount())
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())

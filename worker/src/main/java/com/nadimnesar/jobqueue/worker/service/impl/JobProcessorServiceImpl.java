@@ -52,14 +52,14 @@ public class JobProcessorServiceImpl implements JobProcessorService {
 
         if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
             logger.info("Job with ID: {} has dependencies, waiting for them to complete", jobId);
-            jobQueueService.enqueueJob(job);
+            jobQueueService.publish(job);
             return;
         }
 
         if (job.getAttemptCount() >= job.getMaxAttemptCount() && !checkCanceled(job.getId())) {
             logger.warn("Max retry attempts reached for job with ID: {}", jobId);
             handleFailedJob(job, "Max retry attempts reached");
-            jobQueueService.moveToDeadLetterQueue(jobId);
+            jobQueueService.moveToDeadLetter(jobId);
             return;
         }
 

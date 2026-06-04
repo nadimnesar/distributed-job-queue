@@ -4,6 +4,8 @@ public class RabbitMQConstants {
     private RabbitMQConstants() {
     }
 
+    public static final long BASE_DELAY_MS = 5_000; // 5s base
+
     public static final String EXCHANGE = "job.exchange";
     public static final String QUEUE_HIGH = "queue.high";
     public static final String QUEUE_MEDIUM = "queue.medium";

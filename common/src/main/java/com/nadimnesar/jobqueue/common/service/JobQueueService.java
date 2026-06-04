@@ -5,11 +5,11 @@ import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import java.util.List;
 
 public interface JobQueueService {
-    void enqueueJob(JobEntity job);
+    void publish(JobEntity job);
 
-    String dequeueJob();
+    String consume();
 
-    void moveToDeadLetterQueue(String jobId);
+    void moveToDeadLetter(String jobId);
 
-    List<String> dequeueDeadLetterJobs();
+    List<String> consumeDeadLetters();
 }

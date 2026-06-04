@@ -15,14 +15,12 @@ import java.util.UUID;
 public class JobResponse {
     private UUID id;
     private JobPriority priority;
-    private JobStatus status;
     private JobType type;
+    private JobStatus status;
     private Set<UUID> dependents;
     private Set<UUID> dependencies;
     private String result;
-    private String errorMessage;
-    private Integer currentProgress;
-    private Integer currentAttemptCount;
+    private Integer attemptCount;
     private Integer maxAttemptCount;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
