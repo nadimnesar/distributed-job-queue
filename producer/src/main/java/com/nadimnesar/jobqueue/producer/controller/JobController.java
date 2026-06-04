@@ -127,5 +127,4 @@ public class JobController {
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
-
 }
