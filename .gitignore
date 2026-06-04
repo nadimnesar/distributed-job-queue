@@ -33,3 +33,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### AI ###
+AGENTS.md
+/.opencode/
+/references/
