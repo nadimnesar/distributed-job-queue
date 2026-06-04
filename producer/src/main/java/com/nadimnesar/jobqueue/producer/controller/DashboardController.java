@@ -32,7 +32,7 @@ public class DashboardController {
         }
     }
 
-    @GetMapping("/metrics")
+    @GetMapping("/queue-metrics")
     public ResponseEntity<CommonResponse> getQueueMetrics() {
         logger.info("Received queue metrics request");
         try {

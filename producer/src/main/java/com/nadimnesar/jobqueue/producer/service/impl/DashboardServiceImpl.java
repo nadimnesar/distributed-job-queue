@@ -55,11 +55,16 @@ public class DashboardServiceImpl implements DashboardService {
 
     private Map<String, Long> getQueueMetricsData() {
         Map<String, Long> queueMetrics = new HashMap<>();
-        queueMetrics.put("HIGH_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_HIGH));
-        queueMetrics.put("MEDIUM_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_MEDIUM));
-        queueMetrics.put("LOW_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_LOW));
-        queueMetrics.put("RETRY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_RETRY));
-        queueMetrics.put("DEAD_LETTER_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_DLQ));
+        queueMetrics.put("HIGH_PRIORITY_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_HIGH));
+        queueMetrics.put("MEDIUM_PRIORITY_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_MEDIUM));
+        queueMetrics.put("LOW_PRIORITY_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_LOW));
+        queueMetrics.put("RETRY_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_RETRY));
+        queueMetrics.put("DEAD_LETTER_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_DLQ));
         return queueMetrics;
     }
 }
