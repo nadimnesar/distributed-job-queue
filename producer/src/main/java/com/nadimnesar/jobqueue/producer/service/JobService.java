@@ -12,6 +12,10 @@ public interface JobService {
 
     CommonResponse getJobByStatus(String jobStatus);
 
+    CommonResponse getJobsByType(String jobType);
+
+    CommonResponse getJobsByStatusAndType(String jobStatus, String jobType);
+
     CommonResponse cancelJob(String jobId);
 
     CommonResponse reviveAllDeadJobs();

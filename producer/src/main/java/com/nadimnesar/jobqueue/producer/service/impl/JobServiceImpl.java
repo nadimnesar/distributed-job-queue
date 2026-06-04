@@ -3,6 +3,7 @@ package com.nadimnesar.jobqueue.producer.service.impl;
 import com.nadimnesar.jobqueue.common.constant.Constants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
@@ -188,10 +189,71 @@ public class JobServiceImpl implements JobService {
                 .build();
     }
 
-    //TODO: Add implementation of getJobByStatus
     @Override
+    @Transactional(readOnly = true)
     public CommonResponse getJobByStatus(String jobStatus) {
-        return null;
+        logger.info("Getting jobs by status: {}", jobStatus);
+
+        try {
+            JobStatus status = JobStatus.valueOf(jobStatus.toUpperCase());
+            List<JobEntity> jobs = jobRepository.findByStatus(status);
+
+            if (jobs.isEmpty()) {
+                logger.info("No jobs found with status: {}", jobStatus);
+                return CommonResponse.notFound("No jobs found with status: " + jobStatus);
+            }
+
+            var jobResponses = jobs.stream().map(this::convertToJobResponse).toList();
+            return CommonResponse.builder().data(jobResponses).build();
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid job status: {}", jobStatus);
+            return CommonResponse.badRequest("Invalid job status: " + jobStatus);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommonResponse getJobsByType(String jobType) {
+        logger.info("Getting jobs by type: {}", jobType);
+
+        try {
+            JobType type = JobType.valueOf(jobType.toUpperCase());
+            List<JobEntity> jobs = jobRepository.findByType(type);
+
+            if (jobs.isEmpty()) {
+                logger.info("No jobs found with type: {}", jobType);
+                return CommonResponse.notFound("No jobs found with type: " + jobType);
+            }
+
+            var jobResponses = jobs.stream().map(this::convertToJobResponse).toList();
+            return CommonResponse.builder().data(jobResponses).build();
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid job type: {}", jobType);
+            return CommonResponse.badRequest("Invalid job type: " + jobType);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommonResponse getJobsByStatusAndType(String jobStatus, String jobType) {
+        logger.info("Getting jobs by status: {} and type: {}", jobStatus, jobType);
+
+        try {
+            JobStatus status = JobStatus.valueOf(jobStatus.toUpperCase());
+            JobType type = JobType.valueOf(jobType.toUpperCase());
+            List<JobEntity> jobs = jobRepository.findByStatusAndType(status, type);
+
+            if (jobs.isEmpty()) {
+                logger.info("No jobs found with status: {} and type: {}", jobStatus, jobType);
+                return CommonResponse.notFound("No jobs found with status: " + jobStatus + " and type: " + jobType);
+            }
+
+            var jobResponses = jobs.stream().map(this::convertToJobResponse).toList();
+            return CommonResponse.builder().data(jobResponses).build();
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid job status or type: {} / {}", jobStatus, jobType);
+            return CommonResponse.badRequest("Invalid job status or type");
+        }
     }
 
     @Override
@@ -276,10 +338,47 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    //TODO: Add implementation of reviveDeadJobById
     @Override
+    @Transactional
     public CommonResponse reviveDeadJobById(String jobId) {
-        return null;
+        logger.info("Reviving dead job by id: {}", jobId);
+
+        try {
+            Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
+
+            if (optionalJob.isEmpty()) {
+                logger.info("Job not found with id: {}", jobId);
+                return CommonResponse.notFound("Job not found with id: " + jobId);
+            }
+
+            var job = optionalJob.get();
+
+            if (job.getStatus() != JobStatus.FAILED && job.getStatus() != JobStatus.DEAD) {
+                logger.info("Job {} is not in a dead/failed state, current status: {}", jobId, job.getStatus());
+                return CommonResponse.badRequest("Job is not in a dead or failed state");
+            }
+
+            job.setStatus(JobStatus.PENDING);
+            job.setAttemptCount(0);
+            job.setMaxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT);
+            job.setStartedAt(null);
+            job.setCompletedAt(null);
+            job.setResult(null);
+            jobRepository.save(job);
+
+            logger.info("Successfully revived job with id: {}", jobId);
+            return CommonResponse.builder()
+                    .message("Job revived successfully")
+                    .data(jobId)
+                    .code(HttpStatus.OK.value())
+                    .build();
+        } catch (Exception e) {
+            logger.error("Failed to revive job: {}", e.getMessage(), e);
+            return CommonResponse.builder()
+                    .message("Failed to revive job: " + e.getMessage())
+                    .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .build();
+        }
     }
 
     private void cancelJob(JobEntity jobEntity) {
