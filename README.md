@@ -56,8 +56,8 @@ tolerance,and handles job dependencies and failures gracefully.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/nadimnesar/distributed-job-queue-with-redis-and-spring.git
-   cd distributed-job-queue-with-redis-and-spring
+   git clone https://github.com/nadimnesar/distributed-job-queue.git
+   cd distributed-job-queue
    ```
 
 2. Start the services:
@@ -92,10 +92,8 @@ tail -f docs/logs/producer-062f8e6ef23.log
 
 ## Future Enhancements
 
-- [ ] Implement horizontal scaling for worker nodes based on queue length
 - [ ] Improve job distribution algorithm for better worker utilization
 - [ ] Implement job scheduling capabilities
-- [ ] Implement Redis Cluster for high availability
 - [ ] Add PostgreSQL replication for database redundancy
 - [ ] Add advanced monitoring with Prometheus and Grafana
 
