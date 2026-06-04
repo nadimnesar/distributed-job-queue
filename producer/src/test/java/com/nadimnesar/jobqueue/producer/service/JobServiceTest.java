@@ -1,9 +1,9 @@
 package com.nadimnesar.jobqueue.producer.service;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
-import com.nadimnesar.jobqueue.common.constant.enums.JobType;
+import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constants.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;

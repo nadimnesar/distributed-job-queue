@@ -1,8 +1,7 @@
 package com.nadimnesar.jobqueue.producer.dto.request;
 
-import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constant.enums.JobType;
-import jakarta.validation.constraints.Min;
+import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constants.enums.JobType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -32,7 +31,5 @@ public class JobRequest {
     @NotBlank(message = "Payload cannot be blank")
     private String payload;
 
-    @NotNull(message = "Max attempt count cannot be null")
-    @Min(value = 1, message = "Max attempt count must be at least 1")
     private Integer maxAttemptCount;
 }

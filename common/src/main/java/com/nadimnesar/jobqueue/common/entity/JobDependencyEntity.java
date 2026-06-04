@@ -1,6 +1,6 @@
 package com.nadimnesar.jobqueue.common.entity;
 
-import com.nadimnesar.jobqueue.common.constant.DbConstant;
+import com.nadimnesar.jobqueue.common.constants.DbConstants;
 import com.nadimnesar.jobqueue.common.entity.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,15 +20,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Table(name = DbConstant.JobDependency.TABLE_NAME,
+@Table(name = DbConstants.JobDependency.TABLE_NAME,
         uniqueConstraints = @UniqueConstraint(columnNames = {
-                DbConstant.JobDependency.JOB_ID, DbConstant.JobDependency.DEPENDENCY_ID
+                DbConstants.JobDependency.JOB_ID, DbConstants.JobDependency.DEPENDENCY_ID
         })
 )
 public class JobDependencyEntity extends BaseEntity {
-    @Column(name = DbConstant.JobDependency.JOB_ID, nullable = false)
+    @Column(name = DbConstants.JobDependency.JOB_ID, nullable = false)
     private UUID jobId;
 
-    @Column(name = DbConstant.JobDependency.DEPENDENCY_ID, nullable = false)
+    @Column(name = DbConstants.JobDependency.DEPENDENCY_ID, nullable = false)
     private UUID dependencyId;
 }

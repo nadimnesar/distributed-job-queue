@@ -1,7 +1,8 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constants.Constants;
+import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
@@ -20,10 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -46,8 +44,12 @@ public class JobServiceImpl implements JobService {
                 .priority(jobRequest.getPriority())
                 .type(jobRequest.getType())
                 .payload(jobRequest.getPayload())
-                .maxAttemptCount(jobRequest.getMaxAttemptCount())
                 .build();
+
+        if (Objects.nonNull(jobRequest.getMaxAttemptCount()) &&
+                jobRequest.getMaxAttemptCount() > 0) {
+            jobEntity.setMaxAttemptCount(jobRequest.getMaxAttemptCount());
+        }
 
         JobEntity savedJob = jobRepository.save(jobEntity);
 
@@ -220,10 +222,8 @@ public class JobServiceImpl implements JobService {
             List<JobEntity> revivedJobs = jobRepository.findAllById(revivedJobUUIDs);
             for (JobEntity job : revivedJobs) {
                 job.setStatus(JobStatus.PENDING);
-                job.setErrorMessage(null);
-                job.setCurrentProgress(0);
-                job.setCurrentAttemptCount(0);
-                job.setMaxAttemptCount(3); //default value 3
+                job.setAttemptCount(0);
+                job.setMaxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT);
                 job.setStartedAt(null);
             }
 
@@ -262,9 +262,7 @@ public class JobServiceImpl implements JobService {
                 .dependents(jobDependencyService.getDependents(jobEntity.getId()))
                 .dependencies(jobDependencyService.getDependencies(jobEntity.getId()))
                 .result(jobEntity.getResult())
-                .errorMessage(jobEntity.getErrorMessage())
-                .currentProgress(jobEntity.getCurrentProgress())
-                .currentAttemptCount(jobEntity.getCurrentAttemptCount())
+                .currentAttemptCount(jobEntity.getAttemptCount())
                 .maxAttemptCount(jobEntity.getMaxAttemptCount())
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())

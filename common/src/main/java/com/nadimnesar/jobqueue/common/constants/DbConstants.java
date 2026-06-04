@@ -1,7 +1,7 @@
-package com.nadimnesar.jobqueue.common.constant;
+package com.nadimnesar.jobqueue.common.constants;
 
-public class DbConstant {
-    private DbConstant() {
+public class DbConstants {
+    private DbConstants() {
     }
 
     public static class BaseEntity {
@@ -17,9 +17,7 @@ public class DbConstant {
         public static final String TYPE = "type";
         public static final String PAYLOAD = "payload";
         public static final String RESULT = "result";
-        public static final String ERROR_MESSAGE = "error_message";
-        public static final String CURRENT_PROGRESS = "current_progress";
-        public static final String CURRENT_ATTEMPT_COUNT = "current_attempt_count";
+        public static final String ATTEMPT_COUNT = "attempt_count";
         public static final String MAX_ATTEMPT_COUNT = "max_attempt_count";
         public static final String STARTED_AT = "started_at";
         public static final String COMPLETED_AT = "completed_at";

@@ -2,7 +2,9 @@
 
 ## Overview
 
-This project implements a scalable distributed job queue system using RabbitMQ and Spring Boot, designed to efficiently distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault tolerance,and handles job dependencies and failures gracefully.
+This project implements a scalable distributed job queue system using RabbitMQ and Spring Boot, designed to efficiently
+distribute computational tasks across multiple worker nodes. The system provides robust job tracking, fault
+tolerance,and handles job dependencies and failures gracefully.
 
 ### Features
 
@@ -36,7 +38,7 @@ This project implements a scalable distributed job queue system using RabbitMQ a
 * **Database**: PostgreSQL
 * **Connection Pooling**: PgBouncer
 * **Database Migration**: Liquibase
-* **Build Tool**: Maven (multi-module)
+* **Build Tool**: Maven
 * **Orchestration**: Kubernetes
 * **Logging Pipeline**: Fluent Bit → Logstash → Elasticsearch → Kibana
 

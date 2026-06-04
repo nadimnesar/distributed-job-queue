@@ -1,9 +1,10 @@
 package com.nadimnesar.jobqueue.common.entity;
 
-import com.nadimnesar.jobqueue.common.constant.DbConstant;
-import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
-import com.nadimnesar.jobqueue.common.constant.enums.JobType;
+import com.nadimnesar.jobqueue.common.constants.Constants;
+import com.nadimnesar.jobqueue.common.constants.DbConstants;
+import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constants.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,65 +18,55 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Table(name = DbConstant.Job.TABLE_NAME)
+@Table(name = DbConstants.Job.TABLE_NAME)
 public class JobEntity extends BaseEntity {
 
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false,
             columnDefinition = "VARCHAR(50)",
-            name = DbConstant.Job.PRIORITY)
+            name = DbConstants.Job.PRIORITY)
     @Builder.Default
     private JobPriority priority = JobPriority.MEDIUM;
 
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false,
             columnDefinition = "VARCHAR(50)",
-            name = DbConstant.Job.STATUS)
-    @Builder.Default
-    private JobStatus status = JobStatus.PENDING;
-
-    @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false,
-            columnDefinition = "VARCHAR(50)",
-            name = DbConstant.Job.TYPE)
+            name = DbConstants.Job.TYPE)
     private JobType type;
 
     @Column(nullable = false,
             columnDefinition = "TEXT",
-            name = DbConstant.Job.PAYLOAD)
+            name = DbConstants.Job.PAYLOAD)
     private String payload;
 
+    @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false,
+            columnDefinition = "VARCHAR(50)",
+            name = DbConstants.Job.STATUS)
+    @Builder.Default
+    private JobStatus status = JobStatus.PENDING;
+
     @Column(columnDefinition = "TEXT",
-            name = DbConstant.Job.RESULT)
+            name = DbConstants.Job.RESULT)
     private String result;
 
-    @Column(columnDefinition = "TEXT",
-            name = DbConstant.Job.ERROR_MESSAGE)
-    private String errorMessage;
+    @Column(nullable = false,
+            columnDefinition = "INT",
+            name = DbConstants.Job.ATTEMPT_COUNT)
+    @Builder.Default
+    private Integer attemptCount = 0;
 
     @Column(nullable = false,
             columnDefinition = "INT",
-            name = DbConstant.Job.CURRENT_PROGRESS)
+            name = DbConstants.Job.MAX_ATTEMPT_COUNT)
     @Builder.Default
-    private Integer currentProgress = 0;
-
-    @Column(nullable = false,
-            columnDefinition = "INT",
-            name = DbConstant.Job.CURRENT_ATTEMPT_COUNT)
-    @Builder.Default
-    private Integer currentAttemptCount = 0;
-
-    @Column(nullable = false,
-            columnDefinition = "INT",
-            name = DbConstant.Job.MAX_ATTEMPT_COUNT)
-    @Builder.Default
-    private Integer maxAttemptCount = 3;
+    private Integer maxAttemptCount = Constants.MAXIMUM_ATTEMPT_COUNT;
 
     @Column(columnDefinition = "TIMESTAMP",
-            name = DbConstant.Job.STARTED_AT)
+            name = DbConstants.Job.STARTED_AT)
     private LocalDateTime startedAt;
 
     @Column(columnDefinition = "TIMESTAMP",
-            name = DbConstant.Job.COMPLETED_AT)
+            name = DbConstants.Job.COMPLETED_AT)
     private LocalDateTime completedAt;
 }
