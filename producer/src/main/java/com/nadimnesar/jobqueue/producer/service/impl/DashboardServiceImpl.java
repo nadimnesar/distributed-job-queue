@@ -1,8 +1,9 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constant.RabbitMQConstants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
+import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import com.nadimnesar.jobqueue.producer.service.DashboardService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class DashboardServiceImpl implements DashboardService {
     private static final Logger logger = LoggerFactory.getLogger(DashboardServiceImpl.class);
 
     private final JobRepository jobRepository;
+    private final JobQueueService jobQueueService;
 
     @Override
     public CommonResponse getJobsSummary() {
@@ -51,25 +53,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-    //TODO: Get info from rabbitmq
     private Map<String, Long> getQueueMetricsData() {
         Map<String, Long> queueMetrics = new HashMap<>();
-        queueMetrics.put(
-                "HIGH_PRIORITY_QUEUE_LENGTH",
-                jobRepository.countPendingByPriority(JobPriority.HIGH));
-
-        queueMetrics.put(
-                "MEDIUM_PRIORITY_QUEUE_LENGTH",
-                jobRepository.countPendingByPriority(JobPriority.MEDIUM));
-
-        queueMetrics.put(
-                "LOW_PRIORITY_QUEUE_LENGTH",
-                jobRepository.countPendingByPriority(JobPriority.LOW));
-
-        queueMetrics.put(
-                "DEAD_LETTER_QUEUE_LENGTH",
-                jobRepository.countByStatus(JobStatus.FAILED));
-
+        queueMetrics.put("HIGH_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_HIGH));
+        queueMetrics.put("MEDIUM_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_MEDIUM));
+        queueMetrics.put("LOW_PRIORITY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_LOW));
+        queueMetrics.put("RETRY_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_RETRY));
+        queueMetrics.put("DEAD_LETTER_QUEUE_LENGTH", jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_DLQ));
         return queueMetrics;
     }
 }

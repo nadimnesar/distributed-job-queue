@@ -8,11 +8,13 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class JobQueueServiceImpl implements JobQueueService {
     private static final Logger logger = LoggerFactory.getLogger(JobQueueServiceImpl.class);
 
     private final RabbitTemplate rabbitTemplate;
+    private final RabbitAdmin rabbitAdmin;
 
     @Override
     public void publish(JobEntity job) {
@@ -66,6 +69,13 @@ public class JobQueueServiceImpl implements JobQueueService {
             logger.info("No dead letter jobs available");
         }
         return jobIds;
+    }
+
+    @Override
+    public long getQueueMessageCount(String queueName) {
+        Properties props = rabbitAdmin.getQueueProperties(queueName);
+        if (props == null) return 0L;
+        return (Long) props.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
     }
 
     private String resolveRoutingKey(JobPriority priority) {

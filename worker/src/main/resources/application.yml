@@ -16,6 +16,7 @@ spring:
       max-lifetime: ${HIKARI_MAX_LIFETIME:600000}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:30000}
       keepalive-time: ${HIKARI_KEEPALIVE_TIME:120000}
+      connection-test-query: SELECT 1
   jpa:
     open-in-view: false
     hibernate:

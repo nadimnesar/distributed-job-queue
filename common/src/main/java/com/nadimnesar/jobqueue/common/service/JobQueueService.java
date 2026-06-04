@@ -12,4 +12,6 @@ public interface JobQueueService {
     void moveToDeadLetter(String jobId);
 
     List<String> consumeDeadLetters();
+
+    long getQueueMessageCount(String queueName);
 }
