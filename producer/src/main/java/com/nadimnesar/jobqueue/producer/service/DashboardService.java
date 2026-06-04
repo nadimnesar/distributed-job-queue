@@ -5,5 +5,5 @@ import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 public interface DashboardService {
     CommonResponse getJobsSummary();
 
-    CommonResponse getSystemMetrics();
+    CommonResponse getQueueMetrics();
 }

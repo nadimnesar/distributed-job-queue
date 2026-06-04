@@ -70,6 +70,85 @@ public class JobServiceImpl implements JobService {
                 .build();
     }
 
+    /**
+     * Validates the job request to ensure a Directed Acyclic Graph (DAG) of
+     * dependencies and enforces the priority hierarchy.
+     * <p>
+     * Checks performed:
+     * <ul>
+     *   <li>All referenced dependency jobs exist in the database</li>
+     *   <li>No dependency is in {@link JobStatus#CANCELED CANCELED} or
+     *       {@link JobStatus#DEAD DEAD} state</li>
+     *   <li>Priority hierarchy is not violated (a higher-priority job cannot
+     *       depend on a lower-priority job)</li>
+     * </ul>
+     *
+     * @param jobRequest the job request to validate
+     * @throws IllegalArgumentException if any validation check fails
+     */
+    private void validateJobRequest(JobRequest jobRequest) {
+        Set<UUID> dependencies = jobRequest.getDependencies();
+
+        if (dependencies == null || dependencies.isEmpty()) {
+            logger.debug("Job request has no dependencies");
+            return;
+        }
+
+        List<JobEntity> dependencyJobs = jobRepository.findAllById(dependencies);
+
+        Set<UUID> foundJobIds = dependencyJobs.stream()
+                .map(JobEntity::getId)
+                .collect(Collectors.toSet());
+
+        Set<UUID> missingDependencies = dependencies.stream()
+                .filter(id -> !foundJobIds.contains(id))
+                .collect(Collectors.toSet());
+
+        if (!missingDependencies.isEmpty()) {
+            logger.error("Dependencies not found: {}", missingDependencies);
+            throw new IllegalArgumentException("Dependencies not found: " + missingDependencies);
+        }
+
+        Set<UUID> invalidDependencies = dependencyJobs.stream()
+                .filter(job -> job.getStatus() == JobStatus.CANCELED ||
+                        job.getStatus() == JobStatus.DEAD)
+                .map(JobEntity::getId)
+                .collect(Collectors.toSet());
+
+        if (!invalidDependencies.isEmpty()) {
+            logger.error("Cannot depend on canceled/dead jobs: {}", invalidDependencies);
+            throw new IllegalArgumentException("Cannot depend on canceled/dead jobs: " + invalidDependencies);
+        }
+
+        for (JobEntity dependency : dependencyJobs) {
+            if (isPriorityViolation(dependency.getPriority(), jobRequest.getPriority())) {
+                logger.error("Priority hierarchy violation: {} job cannot depend on {} job",
+                        jobRequest.getPriority(), dependency.getPriority());
+                throw new IllegalArgumentException(
+                        String.format("Job priority hierarchy violated: %s job cannot depend on %s job",
+                                jobRequest.getPriority(), dependency.getPriority()));
+            }
+        }
+    }
+
+    /**
+     * Checks whether a job's priority would violate the hierarchy rule:
+     * a higher-priority job cannot depend on a lower-priority job.
+     * <p>
+     * The valid dependency direction is: equal or higher-to-equal/lower priority.
+     * For example, a {@link JobPriority#HIGH HIGH} job may not depend on a
+     * {@link JobPriority#MEDIUM MEDIUM} or {@link JobPriority#LOW LOW} job.
+     *
+     * @param dependencyPriority the priority of the existing dependency job
+     * @param jobPriority        the priority of the job being submitted
+     * @return {@code true} if the dependency violates the priority hierarchy
+     */
+    private boolean isPriorityViolation(JobPriority dependencyPriority, JobPriority jobPriority) {
+        return (dependencyPriority.equals(JobPriority.MEDIUM) && jobPriority.equals(JobPriority.HIGH)) ||
+                (dependencyPriority.equals(JobPriority.LOW) &&
+                        (jobPriority.equals(JobPriority.HIGH) || jobPriority.equals(JobPriority.MEDIUM)));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public CommonResponse getAllJobs(int pageNumber, int pageSize) {
@@ -107,6 +186,12 @@ public class JobServiceImpl implements JobService {
         return CommonResponse.builder()
                 .data(jobResponse)
                 .build();
+    }
+
+    //TODO: Add implementation of getJobByStatus
+    @Override
+    public CommonResponse getJobByStatus(String jobStatus) {
+        return null;
     }
 
     @Override
@@ -148,61 +233,8 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    //Insure Directed Acyclic Graph (DAG) of jobs
-    //Insure Priority Hierarchy for jobs
-    private void validateJobRequest(JobRequest jobRequest) {
-        Set<UUID> dependencies = jobRequest.getDependencies();
-
-        if (dependencies == null || dependencies.isEmpty()) {
-            logger.debug("Job request has no dependencies");
-            return;
-        }
-
-        List<JobEntity> dependencyJobs = jobRepository.findAllById(dependencies);
-
-        Set<UUID> foundJobIds = dependencyJobs.stream()
-                .map(JobEntity::getId)
-                .collect(Collectors.toSet());
-
-        Set<UUID> missingDependencies = dependencies.stream()
-                .filter(id -> !foundJobIds.contains(id))
-                .collect(Collectors.toSet());
-
-        if (!missingDependencies.isEmpty()) {
-            logger.error("Dependencies not found: {}", missingDependencies);
-            throw new IllegalArgumentException("Dependencies not found: " + missingDependencies);
-        }
-
-        Set<UUID> canceledDependencies = dependencyJobs.stream()
-                .filter(job -> job.getStatus() == JobStatus.CANCELED)
-                .map(JobEntity::getId)
-                .collect(Collectors.toSet());
-
-        if (!canceledDependencies.isEmpty()) {
-            logger.error("Cannot depend on canceled jobs: {}", canceledDependencies);
-            throw new IllegalArgumentException("Cannot depend on canceled jobs: " + canceledDependencies);
-        }
-
-        for (JobEntity dependency : dependencyJobs) {
-            if (isPriorityViolation(dependency.getPriority(), jobRequest.getPriority())) {
-                logger.error("Priority hierarchy violation: {} job cannot depend on {} job",
-                        jobRequest.getPriority(), dependency.getPriority());
-                throw new IllegalArgumentException(
-                        String.format("Job priority hierarchy violated: %s job cannot depend on %s job",
-                                jobRequest.getPriority(), dependency.getPriority()));
-            }
-        }
-    }
-
-    // Higher priority job cannot depend on lower priority job
-    private boolean isPriorityViolation(JobPriority dependencyPriority, JobPriority jobPriority) {
-        return (dependencyPriority.equals(JobPriority.MEDIUM) && jobPriority.equals(JobPriority.HIGH)) ||
-                (dependencyPriority.equals(JobPriority.LOW) &&
-                        (jobPriority.equals(JobPriority.HIGH) || jobPriority.equals(JobPriority.MEDIUM)));
-    }
-
     @Override
-    public CommonResponse reviveDeadJobs() {
+    public CommonResponse reviveAllDeadJobs() {
         logger.info("Starting to revive dead jobs");
 
         try {
@@ -242,6 +274,12 @@ public class JobServiceImpl implements JobService {
                     .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .build();
         }
+    }
+
+    //TODO: Add implementation of reviveDeadJobById
+    @Override
+    public CommonResponse reviveDeadJobById(String jobId) {
+        return null;
     }
 
     private void cancelJob(JobEntity jobEntity) {

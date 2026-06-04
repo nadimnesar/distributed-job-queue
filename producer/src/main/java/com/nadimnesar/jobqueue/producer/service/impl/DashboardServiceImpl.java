@@ -39,10 +39,10 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public CommonResponse getSystemMetrics() {
+    public CommonResponse getQueueMetrics() {
         Map<String, Object> metrics = new HashMap<>();
 
-        Map<String, Long> queueMetrics = getQueueMetrics();
+        Map<String, Long> queueMetrics = getQueueMetricsData();
         metrics.put("queues", queueMetrics);
 
         logger.info("QUEUES METRICS: {}", queueMetrics);
@@ -51,7 +51,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-    private Map<String, Long> getQueueMetrics() {
+    //TODO: Get info from rabbitmq
+    private Map<String, Long> getQueueMetricsData() {
         Map<String, Long> queueMetrics = new HashMap<>();
         queueMetrics.put(
                 "HIGH_PRIORITY_QUEUE_LENGTH",

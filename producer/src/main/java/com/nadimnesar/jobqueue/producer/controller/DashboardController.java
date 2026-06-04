@@ -33,13 +33,13 @@ public class DashboardController {
     }
 
     @GetMapping("/metrics")
-    public ResponseEntity<CommonResponse> getSystemMetrics() {
-        logger.info("Received system metrics request");
+    public ResponseEntity<CommonResponse> getQueueMetrics() {
+        logger.info("Received queue metrics request");
         try {
-            var response = dashboardService.getSystemMetrics();
+            var response = dashboardService.getQueueMetrics();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            logger.error("Error occurred while getting system metrics: {}", e.getMessage());
+            logger.error("Error occurred while getting queue metrics: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }

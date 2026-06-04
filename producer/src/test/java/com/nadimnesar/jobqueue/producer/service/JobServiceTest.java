@@ -192,7 +192,7 @@ public class JobServiceTest {
     }
 
     @Test
-    void reviveDeadJobs_Success() {
+    void reviveAllDeadJobs_Success() {
         var revivedJobIds = List.of(jobEntity.getId().toString());
         var revivedJobs = List.of(jobEntity);
 
@@ -200,7 +200,7 @@ public class JobServiceTest {
         when(jobRepository.findAllById(any())).thenReturn(revivedJobs);
         when(jobRepository.saveAll(any())).thenReturn(revivedJobs);
 
-        CommonResponse response = jobService.reviveDeadJobs();
+        CommonResponse response = jobService.reviveAllDeadJobs();
 
         assertEquals(HttpStatus.OK.value(), response.getCode());
         assertEquals("Successfully revived 1 dead jobs", response.getMessage());
@@ -208,10 +208,10 @@ public class JobServiceTest {
     }
 
     @Test
-    void reviveDeadJobs_NoDeadJobs() {
+    void reviveDeadJobs_NoAllDeadJobs() {
         when(jobQueueService.dequeueDeadLetterJobs()).thenReturn(List.of());
 
-        CommonResponse response = jobService.reviveDeadJobs();
+        CommonResponse response = jobService.reviveAllDeadJobs();
 
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getCode());
         assertEquals("No dead jobs found to revive", response.getMessage());

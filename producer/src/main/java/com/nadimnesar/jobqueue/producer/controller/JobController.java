@@ -73,16 +73,20 @@ public class JobController {
         }
     }
 
+    //TODO: add endpoint to get jobs by status and type
+
     @GetMapping("/jobs/revive")
     public ResponseEntity<CommonResponse> reviveDeadJobs() {
         logger.info("Received revive dead jobs request");
 
         try {
-            var response = jobService.reviveDeadJobs();
+            var response = jobService.reviveAllDeadJobs();
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
             logger.error("Error occurred while reviving dead jobs: {}", e.getMessage());
             return ResponseEntity.ok().body(CommonResponse.badRequest(e.getMessage()));
         }
     }
+
+    //TODO: add endpoint to revive job with by id
 }

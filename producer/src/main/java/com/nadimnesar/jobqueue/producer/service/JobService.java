@@ -10,7 +10,11 @@ public interface JobService {
 
     CommonResponse getJobById(String jobId);
 
+    CommonResponse getJobByStatus(String jobStatus);
+
     CommonResponse cancelJob(String jobId);
 
-    CommonResponse reviveDeadJobs();
+    CommonResponse reviveAllDeadJobs();
+
+    CommonResponse reviveDeadJobById(String jobId);
 }
