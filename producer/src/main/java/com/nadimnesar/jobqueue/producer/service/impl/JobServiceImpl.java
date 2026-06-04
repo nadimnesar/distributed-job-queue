@@ -1,6 +1,5 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.nadimnesar.jobqueue.common.constant.Constants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
@@ -175,17 +174,14 @@ public class JobServiceImpl implements JobService {
     public CommonResponse getJobById(String jobId) {
         logger.info("Getting job by id: {}", jobId);
 
-        Optional<JobEntity> job = jobRepository.findById(UUID.fromString(jobId));
-
+        var job = findJobById(jobId);
         if (job.isEmpty()) {
             logger.info("No job found with given id: {}", jobId);
             return CommonResponse.notFound("No job found with given id.");
         }
 
-        var jobResponse = job.map(this::convertToJobResponse);
-
         return CommonResponse.builder()
-                .data(jobResponse)
+                .data(job.map(this::convertToJobResponse))
                 .build();
     }
 
@@ -261,8 +257,7 @@ public class JobServiceImpl implements JobService {
     public CommonResponse cancelJob(String jobId) {
         logger.info("Cancelling job: {}", jobId);
 
-        Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
-
+        var optionalJob = findJobById(jobId);
         if (optionalJob.isEmpty()) {
             logger.info("Job not found: {}", jobId);
             return CommonResponse.notFound("Job not found");
@@ -281,7 +276,7 @@ public class JobServiceImpl implements JobService {
         }
 
         try {
-            cancelJob(job);
+            markJobAsCanceled(job);
             return CommonResponse.builder()
                     .message("Job is cancelled successfully")
                     .code(HttpStatus.ACCEPTED.value())
@@ -295,7 +290,17 @@ public class JobServiceImpl implements JobService {
         }
     }
 
+    private void markJobAsCanceled(JobEntity jobEntity) {
+        jobEntity.setStatus(JobStatus.CANCELED);
+        jobRepository.save(jobEntity);
+
+        jobDependencyService.informDependents(jobEntity.getId());
+
+        logger.info("Job cancellation completed, job with ID: {}", jobEntity.getId());
+    }
+
     @Override
+    @Transactional
     public CommonResponse reviveAllDeadJobs() {
         logger.info("Starting to revive dead jobs");
 
@@ -312,14 +317,8 @@ public class JobServiceImpl implements JobService {
             // Convert String IDs to UUIDs
             List<UUID> revivedJobUUIDs = revivedJobIds.stream().map(UUID::fromString).toList();
 
-            // Find all jobs that were revived and update their status
             List<JobEntity> revivedJobs = jobRepository.findAllById(revivedJobUUIDs);
-            for (JobEntity job : revivedJobs) {
-                job.setStatus(JobStatus.PENDING);
-                job.setAttemptCount(0);
-                job.setMaxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT);
-                job.setStartedAt(null);
-            }
+            revivedJobs.forEach(this::resetJobForRevival);
 
             jobRepository.saveAll(revivedJobs);
 
@@ -344,7 +343,7 @@ public class JobServiceImpl implements JobService {
         logger.info("Reviving dead job by id: {}", jobId);
 
         try {
-            Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
+            var optionalJob = findJobById(jobId);
 
             if (optionalJob.isEmpty()) {
                 logger.info("Job not found with id: {}", jobId);
@@ -352,18 +351,13 @@ public class JobServiceImpl implements JobService {
             }
 
             var job = optionalJob.get();
-
-            if (job.getStatus() != JobStatus.FAILED && job.getStatus() != JobStatus.DEAD) {
-                logger.info("Job {} is not in a dead/failed state, current status: {}", jobId, job.getStatus());
-                return CommonResponse.badRequest("Job is not in a dead or failed state");
+            if (job.getStatus() != JobStatus.DEAD) {
+                logger.info("Job {} is not in a dead state, current status: {}", jobId, job.getStatus());
+                return CommonResponse.badRequest("Job is not in a dead state. Failed jobs are retried automatically.");
             }
 
-            job.setStatus(JobStatus.PENDING);
-            job.setAttemptCount(0);
-            job.setMaxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT);
-            job.setStartedAt(null);
-            job.setCompletedAt(null);
-            job.setResult(null);
+            resetJobForRevival(job);
+
             jobRepository.save(job);
 
             logger.info("Successfully revived job with id: {}", jobId);
@@ -381,13 +375,16 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    private void cancelJob(JobEntity jobEntity) {
-        jobEntity.setStatus(JobStatus.CANCELED);
-        jobRepository.save(jobEntity);
+    private Optional<JobEntity> findJobById(String jobId) {
+        return jobRepository.findById(UUID.fromString(jobId));
+    }
 
-        jobDependencyService.informDependents(jobEntity.getId());
-
-        logger.info("Job cancellation completed, job with ID: {}", jobEntity.getId());
+    private void resetJobForRevival(JobEntity job) {
+        job.setStatus(JobStatus.PENDING);
+        job.setAttemptCount(0);
+        job.setStartedAt(null);
+        job.setCompletedAt(null);
+        job.setResult(null);
     }
 
     private JobResponse convertToJobResponse(JobEntity jobEntity) {

@@ -101,7 +101,6 @@ public class JobController {
         }
     }
 
-    //TODO: check revive job logics, revive only possible if it is in dead latter queue, failed job will retry automatically, no need revive
     @PostMapping("/job/revive")
     public ResponseEntity<CommonResponse> reviveDeadJobById(@RequestParam String id) {
         logger.info("Received revive dead job request with ID: {}", id);

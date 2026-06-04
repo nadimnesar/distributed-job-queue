@@ -193,6 +193,7 @@ public class JobServiceTest {
 
     @Test
     void reviveAllDeadJobs_Success() {
+        jobEntity.setStatus(JobStatus.DEAD);
         var revivedJobIds = List.of(jobEntity.getId().toString());
         var revivedJobs = List.of(jobEntity);
 
@@ -205,6 +206,29 @@ public class JobServiceTest {
         assertEquals(HttpStatus.OK.value(), response.getCode());
         assertEquals("Successfully revived 1 dead jobs", response.getMessage());
         verify(jobRepository).saveAll(any());
+    }
+
+    @Test
+    void reviveDeadJobById_Success() {
+        jobEntity.setStatus(JobStatus.DEAD);
+        when(jobRepository.findById(jobEntity.getId())).thenReturn(Optional.of(jobEntity));
+
+        CommonResponse response = jobService.reviveDeadJobById(jobEntity.getId().toString());
+
+        assertEquals(HttpStatus.OK.value(), response.getCode());
+        assertEquals("Job revived successfully", response.getMessage());
+        verify(jobRepository).save(any());
+    }
+
+    @Test
+    void reviveDeadJobById_NotDeadState() {
+        jobEntity.setStatus(JobStatus.FAILED);
+        when(jobRepository.findById(jobEntity.getId())).thenReturn(Optional.of(jobEntity));
+
+        CommonResponse response = jobService.reviveDeadJobById(jobEntity.getId().toString());
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getCode());
+        assertEquals("Job is not in a dead state. Failed jobs are retried automatically.", response.getMessage());
     }
 
     @Test
