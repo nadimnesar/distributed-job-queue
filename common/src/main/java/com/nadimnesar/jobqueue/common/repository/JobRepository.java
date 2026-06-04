@@ -1,7 +1,7 @@
 package com.nadimnesar.jobqueue.common.repository;
 
-import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

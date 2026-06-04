@@ -1,6 +1,6 @@
 package com.nadimnesar.jobqueue.worker.service.impl;
 
-import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.repository.JobDependencyRepository;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;

@@ -1,6 +1,6 @@
 package com.nadimnesar.jobqueue.common.entity.base;
 
-import com.nadimnesar.jobqueue.common.constants.DbConstants;
+import com.nadimnesar.jobqueue.common.constant.DbConstants;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;

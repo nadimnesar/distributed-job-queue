@@ -1,8 +1,8 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
-import com.nadimnesar.jobqueue.common.constants.Constants;
-import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constant.Constants;
+import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;

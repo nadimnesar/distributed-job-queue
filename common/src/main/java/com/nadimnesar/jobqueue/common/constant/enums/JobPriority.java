@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.common.constants.enums;
+package com.nadimnesar.jobqueue.common.constant.enums;
 
 public enum JobPriority {
     HIGH,

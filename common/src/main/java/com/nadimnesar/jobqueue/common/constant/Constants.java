@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.common.constants;
+package com.nadimnesar.jobqueue.common.constant;
 
 public class Constants {
     private Constants() {

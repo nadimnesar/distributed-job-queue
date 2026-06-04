@@ -1,7 +1,7 @@
 package com.nadimnesar.jobqueue.producer.dto.request;
 
-import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constants.enums.JobType;
+import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

@@ -15,7 +15,6 @@ ip:
 	$(MINIKUBE) ip
 
 build:
-	mvn package -DskipTests
 	@eval $$($(MINIKUBE) docker-env) && \
 		docker build -t producer:latest ./producer && \
 		docker build -t worker:latest ./worker && \

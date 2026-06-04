@@ -1,4 +1,4 @@
-package com.nadimnesar.jobqueue.common.constants.enums;
+package com.nadimnesar.jobqueue.common.constant.enums;
 
 /**
  * Represents the lifecycle status of a job within the distributed job queue system.

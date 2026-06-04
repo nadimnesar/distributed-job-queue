@@ -1,10 +1,10 @@
 package com.nadimnesar.jobqueue.common.entity;
 
-import com.nadimnesar.jobqueue.common.constants.Constants;
-import com.nadimnesar.jobqueue.common.constants.DbConstants;
-import com.nadimnesar.jobqueue.common.constants.enums.JobPriority;
-import com.nadimnesar.jobqueue.common.constants.enums.JobStatus;
-import com.nadimnesar.jobqueue.common.constants.enums.JobType;
+import com.nadimnesar.jobqueue.common.constant.Constants;
+import com.nadimnesar.jobqueue.common.constant.DbConstants;
+import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
+import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
