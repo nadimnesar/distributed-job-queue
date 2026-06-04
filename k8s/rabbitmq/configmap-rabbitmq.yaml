@@ -7,6 +7,12 @@ data:
   definitions.json: |
     {
       "rabbit_version": "3.12.0",
+      "global_parameters": [
+        {
+          "name": "cluster_name",
+          "value": "rabbit@distributed-job-queue"
+        }
+      ],
       "vhosts": [
         {
           "name": "/"
@@ -19,55 +25,9 @@ data:
           "tags": "administrator"
         }
       ],
-
       "exchanges": [
         {
-          "name": "main.exchange",
-          "vhost": "/",
-          "type": "direct",
-          "durable": true,
-          "auto_delete": false,
-          "internal": false,
-          "arguments": {}
-        },
-        {
-          "name": "retry.1.exchange",
-          "vhost": "/",
-          "type": "direct",
-          "durable": true,
-          "auto_delete": false,
-          "internal": false,
-          "arguments": {}
-        },
-        {
-          "name": "retry.2.exchange",
-          "vhost": "/",
-          "type": "direct",
-          "durable": true,
-          "auto_delete": false,
-          "internal": false,
-          "arguments": {}
-        },
-        {
-          "name": "retry.3.exchange",
-          "vhost": "/",
-          "type": "direct",
-          "durable": true,
-          "auto_delete": false,
-          "internal": false,
-          "arguments": {}
-        },
-        {
-          "name": "retry.4.exchange",
-          "vhost": "/",
-          "type": "direct",
-          "durable": true,
-          "auto_delete": false,
-          "internal": false,
-          "arguments": {}
-        },
-        {
-          "name": "dlx.exchange",
+          "name": "job.exchange",
           "vhost": "/",
           "type": "direct",
           "durable": true,
@@ -78,71 +38,67 @@ data:
       ],
       "queues": [
         {
-          "name": "main.queue",
+          "name": "queue.high",
           "vhost": "/",
           "durable": true,
           "auto_delete": false,
           "arguments": {
             "x-queue-type": "quorum",
-            "x-dead-letter-exchange": "retry.1.exchange",
-            "x-dead-letter-routing-key": ""
+            "x-quorum-initial-group-size": 3,
+            "x-dead-letter-exchange": "job.exchange",
+            "x-dead-letter-routing-key": "queue.retry",
+            "x-dead-letter-strategy": "at-least-once",
+            "x-overflow": "reject-publish"
           }
         },
         {
-          "name": "retry.1.queue",
+          "name": "queue.medium",
           "vhost": "/",
           "durable": true,
           "auto_delete": false,
           "arguments": {
             "x-queue-type": "quorum",
-            "x-message-ttl": 10000,
-            "x-dead-letter-exchange": "main.exchange",
-            "x-dead-letter-routing-key": ""
+            "x-quorum-initial-group-size": 3,
+            "x-dead-letter-exchange": "job.exchange",
+            "x-dead-letter-routing-key": "queue.retry",
+            "x-dead-letter-strategy": "at-least-once",
+            "x-overflow": "reject-publish"
           }
         },
         {
-          "name": "retry.2.queue",
+          "name": "queue.low",
           "vhost": "/",
           "durable": true,
           "auto_delete": false,
           "arguments": {
             "x-queue-type": "quorum",
-            "x-message-ttl": 30000,
-            "x-dead-letter-exchange": "main.exchange",
-            "x-dead-letter-routing-key": ""
+            "x-quorum-initial-group-size": 3,
+            "x-dead-letter-exchange": "job.exchange",
+            "x-dead-letter-routing-key": "queue.retry",
+            "x-dead-letter-strategy": "at-least-once",
+            "x-overflow": "reject-publish"
           }
         },
         {
-          "name": "retry.3.queue",
+          "name": "queue.retry",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "classic",
+            "x-dead-letter-exchange": "job.exchange"
+          }
+        },
+        {
+          "name": "queue.dlq",
           "vhost": "/",
           "durable": true,
           "auto_delete": false,
           "arguments": {
             "x-queue-type": "quorum",
-            "x-message-ttl": 120000,
-            "x-dead-letter-exchange": "main.exchange",
-            "x-dead-letter-routing-key": ""
-          }
-        },
-        {
-          "name": "retry.4.queue",
-          "vhost": "/",
-          "durable": true,
-          "auto_delete": false,
-          "arguments": {
-            "x-queue-type": "quorum",
-            "x-message-ttl": 600000,
-            "x-dead-letter-exchange": "dlx.exchange",
-            "x-dead-letter-routing-key": ""
-          }
-        },
-        {
-          "name": "dlq.queue",
-          "vhost": "/",
-          "durable": true,
-          "auto_delete": false,
-          "arguments": {
-            "x-queue-type": "quorum"
+            "x-quorum-initial-group-size": 3,
+            "x-dead-letter-strategy": "at-least-once",
+            "x-overflow": "reject-publish"
           }
         }
       ],
@@ -155,53 +111,59 @@ data:
           "read": ".*"
         }
       ],
+      "policies": [
+        {
+          "name": "ha-retry",
+          "vhost": "/",
+          "pattern": "^queue\\.retry$",
+          "apply-to": "queues",
+          "definition": {
+            "ha-mode": "exactly",
+            "ha-params": 2,
+            "ha-sync-mode": "automatic"
+          },
+          "priority": 1
+        }
+      ],
       "bindings": [
         {
-          "source": "main.exchange",
+          "source": "job.exchange",
           "vhost": "/",
-          "destination": "main.queue",
+          "destination": "queue.high",
           "destination_type": "queue",
-          "routing_key": "",
+          "routing_key": "queue.high",
           "arguments": {}
         },
         {
-          "source": "retry.1.exchange",
+          "source": "job.exchange",
           "vhost": "/",
-          "destination": "retry.1.queue",
+          "destination": "queue.medium",
           "destination_type": "queue",
-          "routing_key": "",
+          "routing_key": "queue.medium",
           "arguments": {}
         },
         {
-          "source": "retry.2.exchange",
+          "source": "job.exchange",
           "vhost": "/",
-          "destination": "retry.2.queue",
+          "destination": "queue.low",
           "destination_type": "queue",
-          "routing_key": "",
+          "routing_key": "queue.low",
           "arguments": {}
         },
         {
-          "source": "retry.3.exchange",
+          "source": "job.exchange",
           "vhost": "/",
-          "destination": "retry.3.queue",
+          "destination": "queue.retry",
           "destination_type": "queue",
-          "routing_key": "",
+          "routing_key": "queue.retry",
           "arguments": {}
         },
         {
-          "source": "retry.4.exchange",
+          "source": "job.exchange",
           "vhost": "/",
-          "destination": "retry.4.queue",
+          "destination": "queue.dlq",
           "destination_type": "queue",
-          "routing_key": "",
-          "arguments": {}
-        },
-        {
-          "source": "dlx.exchange",
-          "vhost": "/",
-          "destination": "dlq.queue",
-          "destination_type": "queue",
-          "routing_key": "",
+          "routing_key": "queue.dlq",
           "arguments": {}
         }
       ]

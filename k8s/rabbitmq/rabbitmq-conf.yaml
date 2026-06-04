@@ -5,15 +5,16 @@ metadata:
   namespace: distributed-job-queue
 data:
   rabbitmq.properties: |
-    listeners.tcp.default = 5672
-    management.tcp.port = 15672
-    load_definitions = /etc/rabbitmq/definitions.json
-    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
-    cluster_formation.k8s.address_type = hostname
-    cluster_formation.k8s.service_name = rabbitmq-headless
-    cluster_formation.k8s.hostname_suffix = .rabbitmq-headless.distributed-job-queue.svc.cluster.local
-    cluster_formation.node_cleanup.only_log_warning = true
-    cluster_partition_handling = pause_minority
-    vm_memory_high_watermark.relative = 0.6
-    disk_free_limit.absolute = 2GB
+    listeners.tcp.default=5672
+    management.tcp.port=15672
+    load_definitions=/etc/rabbitmq/definitions.json
+    cluster_formation.peer_discovery_backend=rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host=kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type=hostname
+    cluster_formation.k8s.service_name=rabbitmq-headless
+    cluster_formation.k8s.hostname_suffix=.rabbitmq-headless.distributed-job-queue.svc.cluster.local
+    cluster_formation.node_cleanup.only_log_warning=true
+    cluster_partition_handling=pause_minority
+    vm_memory_high_watermark.relative=0.6
+    disk_free_limit.absolute=2GB
+    quorum_queue.initial_cluster_size=3
