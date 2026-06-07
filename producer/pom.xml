@@ -39,7 +39,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
-
         <!-- For Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
