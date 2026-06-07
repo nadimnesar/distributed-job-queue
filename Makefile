@@ -36,7 +36,7 @@ pvc:
 	$(KUBECTL) get pvc -n $(NAMESPACE)
 
 logs:
-	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=100
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=1000
 
 delete:
 	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive

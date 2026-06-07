@@ -85,8 +85,10 @@ data:
           "durable": true,
           "auto_delete": false,
           "arguments": {
-            "x-queue-type": "classic",
-            "x-dead-letter-exchange": "job.exchange"
+            "x-queue-type": "quorum",
+            "x-quorum-initial-group-size": 3,
+            "x-dead-letter-exchange": "job.exchange",
+            "x-overflow": "reject-publish"
           }
         },
         {
@@ -97,7 +99,6 @@ data:
           "arguments": {
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
-            "x-dead-letter-strategy": "at-least-once",
             "x-overflow": "reject-publish"
           }
         }
@@ -111,20 +112,7 @@ data:
           "read": ".*"
         }
       ],
-      "policies": [
-        {
-          "name": "ha-retry",
-          "vhost": "/",
-          "pattern": "^queue\\.retry$",
-          "apply-to": "queues",
-          "definition": {
-            "ha-mode": "exactly",
-            "ha-params": 2,
-            "ha-sync-mode": "automatic"
-          },
-          "priority": 1
-        }
-      ],
+      "policies": [],
       "bindings": [
         {
           "source": "job.exchange",
