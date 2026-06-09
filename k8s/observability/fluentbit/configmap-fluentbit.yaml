@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-config
+  namespace: observability
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Daemon       Off
+        Flush        1
+        Log_Level    info
+        Parsers_File /fluent-bit/etc/parsers.conf
+
+    [INPUT]
+        Name              tail
+        Tag               kube.*
+        Path              /var/log/containers/*.log
+        Exclude_Path      *fluentbit*,*coredns*,*kube-proxy*,*storage-provisioner*,*csi-*
+        Parser            docker
+        DB                /var/log/flb/flb_kube.db
+        DB.Sync           Normal
+        Mem_Buf_Limit     50MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+        Rotate_Wait       30
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Labels              On
+        Annotations         Off
+        Merge_Log           On
+        Keep_Log            Off
+
+    [FILTER]
+        Name       nest
+        Match      kube.*
+        Operation  lift
+        Nested_under mdc
+
+    [FILTER]
+        Name       nest
+        Match      kube.*
+        Operation  lift
+        Nested_under kubernetes
+
+    [FILTER]
+        Name       nest
+        Match      kube.*
+        Operation  lift
+        Nested_under labels
+
+    [OUTPUT]
+        Name                es
+        Match               *
+        Host                elasticsearch.observability.svc.cluster.local
+        Port                9200
+        Logstash_Format     On
+        Logstash_Prefix_Key app
+        Logstash_Prefix     logs
+        Suppress_Type_Name  On
+        Generate_ID         On
+        Retry_Limit         3
+
+  parsers.conf: |
+    [PARSER]
+        Name        docker
+        Format      json
