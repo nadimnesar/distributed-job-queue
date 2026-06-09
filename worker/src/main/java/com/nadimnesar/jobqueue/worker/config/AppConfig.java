@@ -8,10 +8,9 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class AppConfig {
-
     @Bean
     public ExecutorService virtualThreadParTaskExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
+        return new MdcAwareExecutorService(Executors.newVirtualThreadPerTaskExecutor());
     }
 
     @Bean

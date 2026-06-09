@@ -28,6 +28,8 @@ spec:
           image: migration:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://pgbouncer:6432/appdb?prepareThreshold=0
             - name: SPRING_DATASOURCE_USERNAME

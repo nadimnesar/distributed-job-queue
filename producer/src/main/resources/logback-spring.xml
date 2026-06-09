@@ -2,11 +2,21 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>TraceId=%clr(%X{traceId:-}){blue}|SpanId=%clr(%X{spanId:-}){cyan}|Timestamp=%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint}|%clr(%level){yellow}|%clr(${PID:-}){magenta}|%clr(%thread){faint}|%clr(%logger{36}){green} %clr(:){faint} %msg%n%wEx</pattern>
-        </encoder>
-    </appender>
+    <springProfile name="!k8s">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>TraceId=%clr(%X{traceId:-}){blue}|SpanId=%clr(%X{spanId:-}){cyan}|Timestamp=%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint}|%clr(%level){yellow}|%clr(${PID:-}){magenta}|%clr(%thread){faint}|%clr(%logger{36}){green} %clr(:){faint} %msg%n%wEx</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="k8s">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.JsonEncoder">
+                <includeCallerData>true</includeCallerData>
+            </encoder>
+        </appender>
+    </springProfile>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

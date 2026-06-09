@@ -36,7 +36,7 @@ public class TracingInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(@NonNull HttpServletRequest request,
-                                HttpServletResponse response,
+                                @NonNull HttpServletResponse response,
                                 @NonNull Object handler,
                                 Exception ex) {
         logger.info("Request completed - Status: {}", response.getStatus());
