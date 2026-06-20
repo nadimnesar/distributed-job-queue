@@ -1,0 +1,8 @@
+.git
+.idea
+.vscode
+.opencode
+**/target/
+**/build/
+*.log
+*.gz

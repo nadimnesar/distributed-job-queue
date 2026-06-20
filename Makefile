@@ -4,7 +4,7 @@ NAMESPACE ?= distributed-job-queue
 OBSERVABILITY_NAMESPACE ?= observability
 OVERLAY ?= k8s/overlays/minikube
 
-.PHONY: start status ip build namespace apply render pod svc pvc pod-obs svc-obs pvc-obs logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
+.PHONY: start status ip build apply render pod svc pvc logs-postgres logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
 
 start:
 	$(MINIKUBE) start
@@ -18,13 +18,9 @@ ip:
 
 build:
 	@eval $$($(MINIKUBE) docker-env) && \
-		docker build -t producer:latest ./producer && \
-		docker build -t worker:latest ./worker && \
-		docker build -t migration:latest ./migration
-
-namespace:
-	@$(KUBECTL) create namespace $(NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
-	@$(KUBECTL) create namespace $(OBSERVABILITY_NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
+		docker build --build-arg MODULE=producer -t producer:latest . && \
+		docker build --build-arg MODULE=worker -t worker:latest . && \
+		docker build --build-arg MODULE=migration -t migration:latest .
 
 apply:
 	$(KUBECTL) apply -k $(OVERLAY)
@@ -34,21 +30,18 @@ render:
 
 pod:
 	$(KUBECTL) get pods -n $(NAMESPACE)
+	$(KUBECTL) get pods -n $(OBSERVABILITY_NAMESPACE)
 
 svc:
 	$(KUBECTL) get svc -n $(NAMESPACE)
+	$(KUBECTL) get svc -n $(OBSERVABILITY_NAMESPACE)
 
 pvc:
 	$(KUBECTL) get pvc -n $(NAMESPACE)
-
-pod-obs:
-	$(KUBECTL) get pods -n $(OBSERVABILITY_NAMESPACE)
-
-svc-obs:
-	$(KUBECTL) get svc -n $(OBSERVABILITY_NAMESPACE)
-
-pvc-obs:
 	$(KUBECTL) get pvc -n $(OBSERVABILITY_NAMESPACE)
+
+logs-postgres:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=postgres --tail=1000 -f
 
 logs-rabbitmq:
 	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=1000 -f
@@ -63,4 +56,6 @@ logs-kibana:
 	$(KUBECTL) logs -n $(OBSERVABILITY_NAMESPACE) -l app=kibana --tail=1000 -f
 
 delete:
-	$(KUBECTL) delete -k $(OVERLAY)
+	$(KUBECTL) delete -k $(OVERLAY) --ignore-not-found
+	$(KUBECTL) delete pvc --all -n $(NAMESPACE) --ignore-not-found
+	$(KUBECTL) delete pvc --all -n $(OBSERVABILITY_NAMESPACE) --ignore-not-found
