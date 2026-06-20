@@ -54,10 +54,6 @@ class TracingInterceptorTest {
         assertNotNull(MDC.get(Constants.MDC_SPAN_ID));
         assertEquals(32, MDC.get(Constants.MDC_TRACE_ID).length());
         assertEquals(16, MDC.get(Constants.MDC_SPAN_ID).length());
-
-        // Verify response headers were set
-        verify(response).addHeader(eq(Constants.B3_TRACE_ID_HEADER), anyString());
-        verify(response).addHeader(eq(Constants.B3_SPAN_ID_HEADER), anyString());
     }
 
     @Test
@@ -76,9 +72,6 @@ class TracingInterceptorTest {
         String spanId = MDC.get(Constants.MDC_SPAN_ID);
         assertNotNull(spanId);
         assertEquals(16, spanId.length());
-
-        // Response should echo back the same trace ID
-        verify(response).addHeader(Constants.B3_TRACE_ID_HEADER, incomingTraceId);
     }
 
     @Test

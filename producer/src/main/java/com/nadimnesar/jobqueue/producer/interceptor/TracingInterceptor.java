@@ -27,9 +27,6 @@ public class TracingInterceptor implements HandlerInterceptor {
         MDC.put(Constants.MDC_TRACE_ID, traceId);
         MDC.put(Constants.MDC_SPAN_ID, spanId);
 
-        response.addHeader(Constants.B3_TRACE_ID_HEADER, traceId);
-        response.addHeader(Constants.B3_SPAN_ID_HEADER, spanId);
-
         logger.info("Incoming request - Method: {}, URI: {}", request.getMethod(), request.getRequestURI());
         return true;
     }
