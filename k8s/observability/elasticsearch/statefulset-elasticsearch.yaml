@@ -40,25 +40,20 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
-          startupProbe:
+          readinessProbe:
             httpGet:
               path: /_cluster/health
               port: 9200
             initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 30
+            failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /_cluster/health
               port: 9200
+            initialDelaySeconds: 60
             periodSeconds: 15
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /_cluster/health
-              port: 9200
-            periodSeconds: 5
-            failureThreshold: 3
+            failureThreshold: 5
           volumeMounts:
             - name: data
               mountPath: /usr/share/elasticsearch/data
