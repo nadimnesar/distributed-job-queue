@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.producer.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,12 @@ public class CommonResponse {
     private int code = 200;
 
     private Object data;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String traceId;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String spanId;
 
     public static CommonResponse badRequest(String message) {
         return CommonResponse.builder()
