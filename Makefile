@@ -1,10 +1,10 @@
 MINIKUBE ?= minikube
 KUBECTL ?= kubectl
-K8S_DIR ?= k8s
 NAMESPACE ?= distributed-job-queue
 OBSERVABILITY_NAMESPACE ?= observability
+OVERLAY ?= k8s/overlays/minikube
 
-.PHONY: start status ip build namespace apply pod svc pvc pod-obs logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
+.PHONY: start status ip build namespace apply render pod svc pvc pod-obs svc-obs pvc-obs logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
 
 start:
 	$(MINIKUBE) start
@@ -26,8 +26,11 @@ namespace:
 	@$(KUBECTL) create namespace $(NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
 	@$(KUBECTL) create namespace $(OBSERVABILITY_NAMESPACE) --dry-run=client -o yaml | $(KUBECTL) apply -f -
 
-apply: namespace
-	$(KUBECTL) apply -f $(K8S_DIR)/ --recursive
+apply:
+	$(KUBECTL) apply -k $(OVERLAY)
+
+render:
+	$(KUBECTL) kustomize $(OVERLAY)
 
 pod:
 	$(KUBECTL) get pods -n $(NAMESPACE)
@@ -60,4 +63,4 @@ logs-kibana:
 	$(KUBECTL) logs -n $(OBSERVABILITY_NAMESPACE) -l app=kibana --tail=1000 -f
 
 delete:
-	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive
+	$(KUBECTL) delete -k $(OVERLAY)

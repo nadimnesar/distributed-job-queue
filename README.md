@@ -60,15 +60,31 @@ tolerance,and handles job dependencies and failures gracefully.
    cd distributed-job-queue
    ```
 
-2. Start the services:
+2. Start Minikube and enable the ingress addon:
    ```bash
-   make up
+   make start
    ```
 
-3. Stop the services:
+3. Build the service images into the Minikube Docker daemon:
    ```bash
-   make down
+   make build
    ```
+
+4. Apply the Kustomize overlay to the cluster:
+   ```bash
+   make apply
+   ```
+
+5. Delete the resources when done:
+   ```bash
+   make delete
+   ```
+
+Useful commands:
+
+- `make status` — show Minikube status
+- `make ip` — print the Minikube IP
+- `make render` — render the Kustomize overlay to stdout (preview the rendered manifests)
 
 ### API Endpoints
 
