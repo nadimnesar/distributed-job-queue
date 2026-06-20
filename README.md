@@ -23,7 +23,7 @@ tolerance,and handles job dependencies and failures gracefully.
 - Provide fault tolerance using Dead Letter Queues (DLQ) for unprocessable jobs, with support for job recovery.
 - Integrate PgBouncer for efficient connection pooling across multiple producers and workers.
 - Maintain a highly available multi-node RabbitMQ cluster.
-- Implement a centralized logging pipeline (Fluent Bit → Logstash → Elasticsearch → Kibana) for observability.
+- Implement a centralized logging pipeline (Fluent Bit → Elasticsearch → Kibana) for observability.
 - Provide log aggregation, search, and visualization using Elasticsearch and Kibana.
 
 ## System Design
@@ -40,7 +40,7 @@ tolerance,and handles job dependencies and failures gracefully.
 * **Database Migration**: Liquibase
 * **Build Tool**: Maven
 * **Orchestration**: Kubernetes
-* **Logging Pipeline**: Fluent Bit → Logstash → Elasticsearch → Kibana
+* **Logging Pipeline**: Fluent Bit → Elasticsearch → Kibana
 
 ## Getting Started
 

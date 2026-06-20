@@ -20,6 +20,27 @@ spec:
             runAsUser: 0
           ports:
             - containerPort: 2020
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 2020
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 2020
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 5
           volumeMounts:
             - name: varlog
               mountPath: /var/log

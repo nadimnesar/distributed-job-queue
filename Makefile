@@ -4,7 +4,7 @@ K8S_DIR ?= k8s
 NAMESPACE ?= distributed-job-queue
 OBSERVABILITY_NAMESPACE ?= observability
 
-.PHONY: start status ip build namespace apply delete pod svc pvc pod-obs svc-obs pvc-obs logs
+.PHONY: start status ip build namespace apply pod svc pvc pod-obs logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
 
 start:
 	$(MINIKUBE) start
@@ -47,8 +47,17 @@ svc-obs:
 pvc-obs:
 	$(KUBECTL) get pvc -n $(OBSERVABILITY_NAMESPACE)
 
-logs:
-	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=1000
+logs-rabbitmq:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=1000 -f
+
+logs-fluentbit:
+	$(KUBECTL) logs -n $(OBSERVABILITY_NAMESPACE) -l app=fluentbit --tail=1000 -f
+
+logs-es:
+	$(KUBECTL) logs -n $(OBSERVABILITY_NAMESPACE) -l app=elasticsearch --tail=1000 -f
+
+logs-kibana:
+	$(KUBECTL) logs -n $(OBSERVABILITY_NAMESPACE) -l app=kibana --tail=1000 -f
 
 delete:
 	$(KUBECTL) delete -f $(K8S_DIR)/ --recursive
