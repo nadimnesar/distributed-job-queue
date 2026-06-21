@@ -87,6 +87,7 @@ data:
           "arguments": {
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
+            "x-message-ttl": 30000,
             "x-dead-letter-exchange": "job.exchange",
             "x-overflow": "reject-publish"
           }

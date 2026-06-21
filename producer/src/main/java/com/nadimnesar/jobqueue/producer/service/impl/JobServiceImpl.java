@@ -90,7 +90,7 @@ public class JobServiceImpl implements JobService {
         Set<UUID> dependencies = jobRequest.getDependencies();
 
         if (dependencies == null || dependencies.isEmpty()) {
-            logger.debug("Job request has no dependencies");
+            logger.info("Job request has no dependencies");
             return;
         }
 

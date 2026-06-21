@@ -21,15 +21,15 @@ build:
 		docker build --build-arg MODULE=worker -t worker:latest . && \
 		docker build --build-arg MODULE=migration -t migration:latest .
 
-apply:
-	$(KUBECTL) apply -k $(DEV_OVERLAY)
-
 deploy:
 	$(KUBECTL) wait --namespace ingress-nginx \
 		--for=condition=ready pod \
 		--selector=app.kubernetes.io/component=controller \
 		--timeout=120s
 	$(KUBECTL) apply -k $(OVERLAY)
+
+apply:
+	$(KUBECTL) apply -k $(DEV_OVERLAY)
 
 pod:
 	$(KUBECTL) get pods -n $(NAMESPACE)

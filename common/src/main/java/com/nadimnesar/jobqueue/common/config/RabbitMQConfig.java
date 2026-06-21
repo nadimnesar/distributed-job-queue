@@ -51,6 +51,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(RabbitMQConstants.QUEUE_RETRY)
                 .withArgument("x-queue-type", RabbitMQConstants.QUEUE_TYPE_QUORUM)
                 .withArgument("x-quorum-initial-group-size", RabbitMQConstants.QUORUM_INITIAL_GROUP_SIZE)
+                .withArgument("x-message-ttl", RabbitMQConstants.TTL)
                 .withArgument("x-dead-letter-exchange", RabbitMQConstants.EXCHANGE)
                 .withArgument("x-overflow", RabbitMQConstants.OVERFLOW_REJECT_PUBLISH)
                 .build();

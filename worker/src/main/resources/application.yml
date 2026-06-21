@@ -41,6 +41,10 @@ spring:
     virtual:
       enabled: true
 
+schedule:
+  cron:
+    consume: "*/10 * * * * *"
+
 logging:
   level:
     root: INFO
