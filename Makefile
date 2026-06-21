@@ -3,8 +3,7 @@ KUBECTL ?= kubectl
 NAMESPACE ?= distributed-job-queue
 OBSERVABILITY_NAMESPACE ?= observability
 OVERLAY ?= k8s/overlays/minikube
-
-.PHONY: start status ip build apply render pod svc pvc logs-postgres logs-rabbitmq logs-fluentbit logs-es logs-kibana delete
+DEV_OVERLAY ?= k8s/overlays/dev
 
 start:
 	$(MINIKUBE) start
@@ -23,10 +22,14 @@ build:
 		docker build --build-arg MODULE=migration -t migration:latest .
 
 apply:
-	$(KUBECTL) apply -k $(OVERLAY)
+	$(KUBECTL) apply -k $(DEV_OVERLAY)
 
-render:
-	$(KUBECTL) kustomize $(OVERLAY)
+deploy:
+	$(KUBECTL) wait --namespace ingress-nginx \
+		--for=condition=ready pod \
+		--selector=app.kubernetes.io/component=controller \
+		--timeout=120s
+	$(KUBECTL) apply -k $(OVERLAY)
 
 pod:
 	$(KUBECTL) get pods -n $(NAMESPACE)
@@ -57,5 +60,8 @@ logs-kibana:
 
 delete:
 	$(KUBECTL) delete -k $(OVERLAY) --ignore-not-found
+	@echo "Waiting for pods to terminate..."
+	@$(KUBECTL) wait --for=delete pod --all -n $(NAMESPACE) --timeout=120s 2>/dev/null || true
+	@$(KUBECTL) wait --for=delete pod --all -n $(OBSERVABILITY_NAMESPACE) --timeout=120s 2>/dev/null || true
 	$(KUBECTL) delete pvc --all -n $(NAMESPACE) --ignore-not-found
 	$(KUBECTL) delete pvc --all -n $(OBSERVABILITY_NAMESPACE) --ignore-not-found

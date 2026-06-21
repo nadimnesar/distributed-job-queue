@@ -31,12 +31,15 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual
-        prefetch: 10
+        prefetch: 1
         retry:
           enabled: false
     template:
       mandatory: true
     publisher-confirm-type: correlated
+  threads:
+    virtual:
+      enabled: true
 
 logging:
   level:

@@ -12,12 +12,4 @@ public class AppConfig {
     public ExecutorService virtualThreadParTaskExecutor() {
         return new MdcAwareExecutorService(Executors.newVirtualThreadPerTaskExecutor());
     }
-
-    @Bean
-    public WorkerContext workerContext() {
-        return new WorkerContext(System.getProperty("hostname"));
-    }
-
-    public record WorkerContext(String hostname) {
-    }
 }

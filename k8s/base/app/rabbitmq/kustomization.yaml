@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - statefulset-rabbitmq.yaml
+  - service-rabbitmq.yaml
+  - service-rabbitmq-headless.yaml
+  - configmap-rabbitmq.yaml
+  - rabbitmq-conf.yaml
+  - rbac-rabbitmq.yaml
+  - secret-rabbitmq.yaml
