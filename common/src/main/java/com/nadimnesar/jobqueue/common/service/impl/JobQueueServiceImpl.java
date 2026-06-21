@@ -70,12 +70,22 @@ public class JobQueueServiceImpl implements JobQueueService {
     }
 
     @Override
+    public void ack(Channel channel, long deliveryTag, String jobId) {
+        try (channel) {
+            channel.basicAck(deliveryTag, false);
+            logger.info("Acknowledged job {}", jobId);
+        } catch (IOException | TimeoutException e) {
+            logger.error("Failed to ack for job {}: {}", jobId, e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void ack(ConsumedMessage message) {
         String jobId = message.jobId();
 
         try (Channel channel = message.channel()) {
             channel.basicAck(message.getDeliveryTag(), false);
-            logger.info("Acknowledged job {}", jobId);
+            logger.info("Acknowledged message {}", message);
         } catch (IOException | TimeoutException e) {
             logger.error("Failed to ack for job {}: {}", jobId, e.getMessage(), e);
         }

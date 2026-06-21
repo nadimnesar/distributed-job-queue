@@ -2,6 +2,7 @@ package com.nadimnesar.jobqueue.common.service;
 
 import com.nadimnesar.jobqueue.common.dto.ConsumedMessage;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
+import com.rabbitmq.client.Channel;
 
 import java.util.List;
 
@@ -11,9 +12,11 @@ public interface JobQueueService {
 
     ConsumedMessage consume();
 
-    void ack(ConsumedMessage message);
+    void ack(Channel channel, long deliveryTag, String jobId);
 
-    void nack(ConsumedMessage message);
+    void ack(ConsumedMessage consumedMessage);
+
+    void nack(ConsumedMessage consumedMessage);
 
     void moveToDeadLetter(String jobId);
 

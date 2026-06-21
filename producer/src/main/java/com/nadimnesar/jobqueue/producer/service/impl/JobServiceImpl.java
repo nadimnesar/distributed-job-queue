@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.producer.service.impl;
 
+import com.nadimnesar.jobqueue.common.constant.Constants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
@@ -381,7 +382,7 @@ public class JobServiceImpl implements JobService {
 
     private void resetJobForRevival(JobEntity job) {
         job.setStatus(JobStatus.PENDING);
-        job.setAttemptCount(0);
+        job.setAttemptCount(Constants.INITIAL_ATTEMPT_COUNT);
         job.setStartedAt(null);
         job.setCompletedAt(null);
         job.setResult(null);

@@ -40,6 +40,19 @@ public class RabbitMQConfig {
                 .withArgument("x-queue-type", RabbitMQConstants.QUEUE_TYPE_QUORUM)
                 .withArgument("x-quorum-initial-group-size", RabbitMQConstants.QUORUM_INITIAL_GROUP_SIZE)
                 .withArgument("x-dead-letter-exchange", RabbitMQConstants.EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", RabbitMQConstants.QUEUE_DELAY)
+                .withArgument("x-dead-letter-strategy", RabbitMQConstants.DEAD_LETTER_STRATEGY_AT_LEAST_ONCE)
+                .withArgument("x-overflow", RabbitMQConstants.OVERFLOW_REJECT_PUBLISH)
+                .build();
+    }
+
+    @Bean
+    public Queue delayQueue() {
+        return QueueBuilder.durable(RabbitMQConstants.QUEUE_DELAY)
+                .withArgument("x-queue-type", RabbitMQConstants.QUEUE_TYPE_QUORUM)
+                .withArgument("x-quorum-initial-group-size", RabbitMQConstants.QUORUM_INITIAL_GROUP_SIZE)
+                .withArgument("x-message-ttl", RabbitMQConstants.TTL)
+                .withArgument("x-dead-letter-exchange", RabbitMQConstants.EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", RabbitMQConstants.QUEUE_RETRY)
                 .withArgument("x-dead-letter-strategy", RabbitMQConstants.DEAD_LETTER_STRATEGY_AT_LEAST_ONCE)
                 .withArgument("x-overflow", RabbitMQConstants.OVERFLOW_REJECT_PUBLISH)
@@ -51,8 +64,6 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(RabbitMQConstants.QUEUE_RETRY)
                 .withArgument("x-queue-type", RabbitMQConstants.QUEUE_TYPE_QUORUM)
                 .withArgument("x-quorum-initial-group-size", RabbitMQConstants.QUORUM_INITIAL_GROUP_SIZE)
-                .withArgument("x-message-ttl", RabbitMQConstants.TTL)
-                .withArgument("x-dead-letter-exchange", RabbitMQConstants.EXCHANGE)
                 .withArgument("x-overflow", RabbitMQConstants.OVERFLOW_REJECT_PUBLISH)
                 .build();
     }
@@ -79,6 +90,11 @@ public class RabbitMQConfig {
     @Bean
     public Binding lowBinding() {
         return BindingBuilder.bind(lowQueue()).to(jobExchange()).with(RabbitMQConstants.QUEUE_LOW);
+    }
+
+    @Bean
+    public Binding delayBinding() {
+        return BindingBuilder.bind(delayQueue()).to(jobExchange()).with(RabbitMQConstants.QUEUE_DELAY);
     }
 
     @Bean

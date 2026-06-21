@@ -8,6 +8,7 @@ public class RabbitMQConstants {
     public static final String QUEUE_HIGH = "queue.high";
     public static final String QUEUE_MEDIUM = "queue.medium";
     public static final String QUEUE_LOW = "queue.low";
+    public static final String QUEUE_DELAY = "queue.delay";
     public static final String QUEUE_RETRY = "queue.retry";
     public static final String QUEUE_DLQ = "queue.dlq";
 

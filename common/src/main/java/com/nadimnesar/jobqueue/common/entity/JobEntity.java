@@ -54,13 +54,13 @@ public class JobEntity extends BaseEntity {
             columnDefinition = "INT",
             name = DbConstants.Job.ATTEMPT_COUNT)
     @Builder.Default
-    private Integer attemptCount = 0;
+    private Integer attemptCount = Constants.INITIAL_ATTEMPT_COUNT;
 
     @Column(nullable = false,
             columnDefinition = "INT",
             name = DbConstants.Job.MAX_ATTEMPT_COUNT)
     @Builder.Default
-    private Integer maxAttemptCount = Constants.MAXIMUM_ATTEMPT_COUNT;
+    private Integer maxAttemptCount = Constants.DEFAULT_MAXIMUM_ATTEMPT_COUNT;
 
     @Column(columnDefinition = "TIMESTAMP",
             name = DbConstants.Job.STARTED_AT)

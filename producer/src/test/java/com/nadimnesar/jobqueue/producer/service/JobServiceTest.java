@@ -62,7 +62,7 @@ public class JobServiceTest {
                 .priority(JobPriority.HIGH)
                 .type(JobType.EMAIL_SENDING)
                 .payload("test payload")
-                .maxAttemptCount(Constants.MAXIMUM_ATTEMPT_COUNT)
+                .maxAttemptCount(Constants.DEFAULT_MAXIMUM_ATTEMPT_COUNT)
                 .dependencies(new HashSet<>())
                 .build();
 

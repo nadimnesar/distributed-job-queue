@@ -3,10 +3,8 @@ package com.nadimnesar.jobqueue.worker.service;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.dto.JobProcessResult;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
-import com.nadimnesar.jobqueue.common.repository.JobDependencyRepository;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
-import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.worker.handler.JobHandler;
 import com.nadimnesar.jobqueue.worker.handler.JobHandlerRegistry;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +21,9 @@ import java.util.UUID;
 public class JobProcessorService {
     private static final Logger logger = LoggerFactory.getLogger(JobProcessorService.class);
 
-    private final JobQueueService jobQueueService;
     private final JobDependencyService jobDependencyService;
     private final JobHandlerRegistry jobHandlerRegistry;
-
     private final JobRepository jobRepository;
-    private final JobDependencyRepository jobDependencyRepository;
 
     public JobProcessResult processJob(String jobId) {
         logger.info("Processing job with id: {}", jobId);
@@ -51,21 +46,9 @@ public class JobProcessorService {
                 break;
         }
 
-        removeOrphanDependencies();
-
-        //TODO: Because of retry mechanism, this job can be reach to maxAttemptCount and move to DQL before starting, actual processing.
         if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
-            logger.info("Job with ID: {} has dependencies, waiting for them to complete", jobId);
+            logger.info("Job with ID: {} has dependencies, will retry after delay", jobId);
             return JobProcessResult.NACK;
-        }
-
-        if (job.getAttemptCount() >= job.getMaxAttemptCount() && job.getStatus() != JobStatus.CANCELED) {
-            logger.warn("Max retry attempts reached for job with ID: {}", jobId);
-            job.setStatus(JobStatus.DEAD);
-            job.setResult("Max retry attempts reached");
-            jobRepository.save(job);
-            jobQueueService.moveToDeadLetter(jobId);
-            return JobProcessResult.ACK;
         }
 
         if (checkCanceled(job.getId())) {
@@ -76,10 +59,10 @@ public class JobProcessorService {
         if (handler == null) {
             logger.error("No handler registered for job type: {}, jobId={}", job.getType(), jobId);
             handleFailedJob(job, "Unknown job type: " + job.getType());
-            return JobProcessResult.ACK;
+            return JobProcessResult.NACK;
         }
 
-        updateJobAsProcessingAndIncreaseAttemptCount(job);
+        updateJobAsProcessing(job);
 
         try {
             handler.handle(job);
@@ -90,14 +73,13 @@ public class JobProcessorService {
         } catch (Exception e) {
             logger.error("Handler failed for job id={}, type={}: {}", job.getId(), job.getType(), e.getMessage(), e);
             handleFailedJob(job, e.getMessage());
-            return JobProcessResult.ACK;
+            return JobProcessResult.NACK;
         }
     }
 
-    private void updateJobAsProcessingAndIncreaseAttemptCount(JobEntity job) {
+    private void updateJobAsProcessing(JobEntity job) {
         job.setStatus(JobStatus.PROCESSING);
         job.setStartedAt(LocalDateTime.now());
-        job.setAttemptCount(job.getAttemptCount() + 1);
         jobRepository.save(job);
     }
 
@@ -132,17 +114,5 @@ public class JobProcessorService {
         return jobRepository.findById(jobId)
                 .map(j -> j.getStatus() == JobStatus.CANCELED)
                 .orElse(false);
-    }
-
-    private void removeOrphanDependencies() {
-        logger.info("Removing orphan dependencies");
-
-        var dependencies = jobDependencyRepository.findAll();
-        dependencies.forEach(jobDependency -> {
-            var dependentJob = jobRepository.findById(jobDependency.getDependencyId());
-            if (dependentJob.isPresent() && dependentJob.get().getStatus().equals(JobStatus.COMPLETED)) {
-                jobDependencyService.informDependents(dependentJob.get().getId());
-            }
-        });
     }
 }

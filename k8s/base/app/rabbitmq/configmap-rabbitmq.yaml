@@ -46,7 +46,7 @@ data:
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
             "x-dead-letter-exchange": "job.exchange",
-            "x-dead-letter-routing-key": "queue.retry",
+            "x-dead-letter-routing-key": "queue.delay",
             "x-dead-letter-strategy": "at-least-once",
             "x-overflow": "reject-publish"
           }
@@ -60,7 +60,7 @@ data:
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
             "x-dead-letter-exchange": "job.exchange",
-            "x-dead-letter-routing-key": "queue.retry",
+            "x-dead-letter-routing-key": "queue.delay",
             "x-dead-letter-strategy": "at-least-once",
             "x-overflow": "reject-publish"
           }
@@ -73,6 +73,21 @@ data:
           "arguments": {
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
+            "x-dead-letter-exchange": "job.exchange",
+            "x-dead-letter-routing-key": "queue.delay",
+            "x-dead-letter-strategy": "at-least-once",
+            "x-overflow": "reject-publish"
+          }
+        },
+        {
+          "name": "queue.delay",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-quorum-initial-group-size": 3,
+            "x-message-ttl": 30000,
             "x-dead-letter-exchange": "job.exchange",
             "x-dead-letter-routing-key": "queue.retry",
             "x-dead-letter-strategy": "at-least-once",
@@ -87,8 +102,6 @@ data:
           "arguments": {
             "x-queue-type": "quorum",
             "x-quorum-initial-group-size": 3,
-            "x-message-ttl": 30000,
-            "x-dead-letter-exchange": "job.exchange",
             "x-overflow": "reject-publish"
           }
         },
@@ -137,6 +150,14 @@ data:
           "destination": "queue.low",
           "destination_type": "queue",
           "routing_key": "queue.low",
+          "arguments": {}
+        },
+        {
+          "source": "job.exchange",
+          "vhost": "/",
+          "destination": "queue.delay",
+          "destination_type": "queue",
+          "routing_key": "queue.delay",
           "arguments": {}
         },
         {

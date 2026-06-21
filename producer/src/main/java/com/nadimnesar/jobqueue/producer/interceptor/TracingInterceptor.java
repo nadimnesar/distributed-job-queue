@@ -17,11 +17,7 @@ public class TracingInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request,
                              @NonNull HttpServletResponse response,
                              @NonNull Object handler) {
-        String traceId = request.getHeader(Constants.B3_TRACE_ID_HEADER);
-        if (traceId == null || traceId.isBlank()) {
-            traceId = TracingUtils.newTraceId();
-        }
-
+        String traceId = TracingUtils.newTraceId();
         String spanId = TracingUtils.newSpanId();
 
         MDC.put(Constants.MDC_TRACE_ID, traceId);
