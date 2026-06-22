@@ -3,6 +3,7 @@ package com.nadimnesar.jobqueue.worker.service;
 import com.nadimnesar.jobqueue.common.dto.ConsumedMessage;
 import com.nadimnesar.jobqueue.common.dto.JobProcessResult;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
+import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ public class JobConsumerService {
         } catch (Exception e) {
             logger.error("Error processing job {}: {}", jobId, e.getMessage(), e);
             jobQueueService.nack(consumedMessage);
+        } finally {
+            TracingUtils.clearTracing();
         }
     }
 }

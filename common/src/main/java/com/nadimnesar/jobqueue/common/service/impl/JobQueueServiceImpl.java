@@ -1,16 +1,20 @@
 package com.nadimnesar.jobqueue.common.service.impl;
 
+import com.nadimnesar.jobqueue.common.constant.Constants;
 import com.nadimnesar.jobqueue.common.constant.RabbitMQConstants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.dto.ConsumedMessage;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
+import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -25,10 +29,24 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class JobQueueServiceImpl implements JobQueueService {
     private static final Logger logger = LoggerFactory.getLogger(JobQueueServiceImpl.class);
+
     private static final List<String> orderedQueueList = List.of(
             RabbitMQConstants.QUEUE_HIGH,
             RabbitMQConstants.QUEUE_MEDIUM,
             RabbitMQConstants.QUEUE_LOW);
+
+    private static final MessagePostProcessor messagePostProcessor = new MessagePostProcessor() {
+        @Override
+        @NonNull
+        public Message postProcessMessage(@NonNull Message message) {
+            String traceId = TracingUtils.getTraceId();
+            if (traceId != null) {
+                message.getMessageProperties()
+                        .setHeader(Constants.HEADER_TRACE_ID, traceId);
+            }
+            return message;
+        }
+    };
 
     private final RabbitTemplate rabbitTemplate;
     private final RabbitAdmin rabbitAdmin;
@@ -38,7 +56,7 @@ public class JobQueueServiceImpl implements JobQueueService {
         String jobId = job.getId().toString();
         String routingKey = resolveRoutingKey(job.getPriority());
         logger.info("Publishing job {} to exchange {} with routing key {}", jobId, RabbitMQConstants.EXCHANGE, routingKey);
-        rabbitTemplate.convertAndSend(RabbitMQConstants.EXCHANGE, routingKey, jobId);
+        rabbitTemplate.convertAndSend(RabbitMQConstants.EXCHANGE, routingKey, jobId, messagePostProcessor);
         logger.info("Successfully published job {}", jobId);
     }
 
@@ -50,8 +68,19 @@ public class JobQueueServiceImpl implements JobQueueService {
                     GetResponse getResponse = channel.basicGet(queue, false);
                     if (getResponse != null) {
                         String jobId = new String(getResponse.getBody());
+                        String traceId = null;
+                        var headers = getResponse.getProps().getHeaders();
+                        if (headers != null) {
+                            Object traceIdHeader = headers.get(Constants.HEADER_TRACE_ID);
+                            if (traceIdHeader != null) {
+                                traceId = traceIdHeader.toString();
+                            }
+                        }
+                        TracingUtils.setTraceId(traceId);
+                        TracingUtils.setSpanId(TracingUtils.newSpanId());
+
                         logger.info("Consumed job {} from queue {}", jobId, queue);
-                        return new ConsumedMessage(getResponse, channel, jobId, queue);
+                        return new ConsumedMessage(getResponse, channel, jobId, queue, traceId);
                     }
                     return null;
                 });
@@ -106,7 +135,12 @@ public class JobQueueServiceImpl implements JobQueueService {
     @Override
     public void moveToDeadLetter(String jobId) {
         logger.info("Moving job {} to dead letter queue", jobId);
-        rabbitTemplate.convertAndSend(RabbitMQConstants.EXCHANGE, RabbitMQConstants.QUEUE_DLQ, jobId);
+        rabbitTemplate.convertAndSend(
+                RabbitMQConstants.EXCHANGE,
+                RabbitMQConstants.QUEUE_DLQ,
+                jobId,
+                messagePostProcessor
+        );
         logger.info("Successfully moved job {} to dead letter queue", jobId);
     }
 

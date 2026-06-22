@@ -10,4 +10,5 @@ public class Constants {
     // Tracing
     public static final String MDC_TRACE_ID = "traceId";
     public static final String MDC_SPAN_ID = "spanId";
+    public static final String HEADER_TRACE_ID = "traceId";
 }

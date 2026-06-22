@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.worker.service;
 
+import com.nadimnesar.jobqueue.common.constant.Constants;
 import com.nadimnesar.jobqueue.common.constant.RabbitMQConstants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
@@ -7,6 +8,7 @@ import com.nadimnesar.jobqueue.common.repository.JobDependencyRepository;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
+import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -34,6 +36,10 @@ public class JobRetryService {
             concurrency = "1"
     )
     public void onRetryMessage(String jobId, Channel channel, Message message) {
+        String traceId = (String) message.getMessageProperties().getHeaders().get(Constants.HEADER_TRACE_ID);
+        TracingUtils.setTraceId(traceId);
+        TracingUtils.setSpanId(TracingUtils.newSpanId());
+
         logger.info("Received retry message for job: {}", jobId);
 
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
@@ -43,6 +49,8 @@ public class JobRetryService {
         } catch (Exception e) {
             logger.error("Failed to process retry job {}: {}", jobId, e.getMessage(), e);
             updateAsDead(jobId);
+        } finally {
+            TracingUtils.clearTracing();
         }
     }
 
