@@ -1,26 +1,28 @@
 package com.nadimnesar.jobqueue.worker.service;
 
+import com.nadimnesar.jobqueue.common.constant.enums.JobAckStatus;
 import com.nadimnesar.jobqueue.common.dto.ConsumedMessage;
-import com.nadimnesar.jobqueue.common.dto.JobProcessResult;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ExecutorService;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JobConsumerService {
-    private static final Logger logger = LoggerFactory.getLogger(JobConsumerService.class);
 
     private final JobQueueService jobQueueService;
     private final JobProcessorService jobProcessorService;
+    private final ExecutorService virtualThreadParTaskExecutor;
 
     @Scheduled(cron = "${schedule.cron.consume}")
     public void consumeJobs() {
-        logger.info("Starting job consumption cycle");
+        log.info("Starting job consumption cycle");
 
         ConsumedMessage consumedMessage = jobQueueService.consume();
         if (consumedMessage == null) {
@@ -28,19 +30,23 @@ public class JobConsumerService {
         }
 
         String jobId = consumedMessage.jobId();
-        try {
-            var result = jobProcessorService.processJob(jobId);
+        virtualThreadParTaskExecutor.submit(() -> {
+            try {
+                TracingUtils.setNewSpanId();
 
-            if (JobProcessResult.ACK.equals(result)) {
-                jobQueueService.ack(consumedMessage);
-            } else {
+                var result = jobProcessorService.processJob(jobId);
+                if (JobAckStatus.ACK.equals(result)) {
+                    jobQueueService.ack(consumedMessage);
+                } else {
+                    jobQueueService.nack(consumedMessage);
+                }
+            } catch (Exception e) {
+                log.error("Error processing job {}: {}", jobId, e.getMessage(), e);
                 jobQueueService.nack(consumedMessage);
+            } finally {
+                TracingUtils.clearTracing();
             }
-        } catch (Exception e) {
-            logger.error("Error processing job {}: {}", jobId, e.getMessage(), e);
-            jobQueueService.nack(consumedMessage);
-        } finally {
-            TracingUtils.clearTracing();
-        }
+        });
+        TracingUtils.clearTracing();
     }
 }

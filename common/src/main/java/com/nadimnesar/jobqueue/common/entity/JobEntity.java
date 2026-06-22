@@ -1,6 +1,6 @@
 package com.nadimnesar.jobqueue.common.entity;
 
-import com.nadimnesar.jobqueue.common.constant.Constants;
+import com.nadimnesar.jobqueue.common.constant.AppConstants;
 import com.nadimnesar.jobqueue.common.constant.DbConstants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
@@ -12,7 +12,7 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @Entity
 @Data
 @NoArgsConstructor
@@ -54,13 +54,13 @@ public class JobEntity extends BaseEntity {
             columnDefinition = "INT",
             name = DbConstants.Job.ATTEMPT_COUNT)
     @Builder.Default
-    private Integer attemptCount = Constants.INITIAL_ATTEMPT_COUNT;
+    private Integer attemptCount = AppConstants.INITIAL_ATTEMPT_COUNT;
 
     @Column(nullable = false,
             columnDefinition = "INT",
             name = DbConstants.Job.MAX_ATTEMPT_COUNT)
     @Builder.Default
-    private Integer maxAttemptCount = Constants.DEFAULT_MAXIMUM_ATTEMPT_COUNT;
+    private Integer maxAttemptCount = AppConstants.DEFAULT_MAXIMUM_ATTEMPT_COUNT;
 
     @Column(columnDefinition = "TIMESTAMP",
             name = DbConstants.Job.STARTED_AT)

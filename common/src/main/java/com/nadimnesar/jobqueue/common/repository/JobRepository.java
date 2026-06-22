@@ -3,6 +3,9 @@ package com.nadimnesar.jobqueue.common.repository;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
+import com.nadimnesar.jobqueue.common.repository.projection.JobStatusCountProjection;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -13,16 +16,13 @@ import java.util.UUID;
 @Repository
 public interface JobRepository extends JpaRepository<JobEntity, UUID> {
 
-    @Query("SELECT j FROM JobEntity j WHERE j.attemptCount < j.maxAttemptCount " +
-            "AND j.status != 'CANCELED' AND j.status != 'COMPLETED' AND j.status != 'DEAD' ORDER BY j.createdAt ASC")
-    List<JobEntity> findJobsToRetry();
+    Page<JobEntity> findByStatus(JobStatus status, Pageable pageable);
 
-    @Query("SELECT COUNT(j) FROM JobEntity j WHERE j.status = ?1")
-    long countByStatus(JobStatus status);
+    Page<JobEntity> findByType(JobType type, Pageable pageable);
 
-    List<JobEntity> findByStatus(JobStatus status);
+    Page<JobEntity> findByStatusAndType(JobStatus status, JobType type, Pageable pageable);
 
-    List<JobEntity> findByType(JobType type);
-
-    List<JobEntity> findByStatusAndType(JobStatus status, JobType type);
+    @Query("SELECT j.status AS status, COUNT(j) AS count " +
+            "FROM JobEntity j GROUP BY j.status")
+    List<JobStatusCountProjection> countJobsGroupedByStatus();
 }

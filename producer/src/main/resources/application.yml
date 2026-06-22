@@ -28,12 +28,6 @@ spring:
     username: ${RABBITMQ_USERNAME:admin}
     password: ${RABBITMQ_PASSWORD:admin}
     virtual-host: /
-    listener:
-      simple:
-        acknowledge-mode: manual
-        prefetch: 1
-        retry:
-          enabled: false
     template:
       mandatory: true
     publisher-confirm-type: correlated

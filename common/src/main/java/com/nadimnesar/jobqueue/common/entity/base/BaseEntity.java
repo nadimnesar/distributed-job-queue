@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @MappedSuperclass
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
@@ -25,6 +27,7 @@ import java.util.UUID;
 public abstract class BaseEntity {
 
     @Id
+    @EqualsAndHashCode.Include
     @Column(nullable = false,
             updatable = false,
             unique = true,

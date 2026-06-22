@@ -1,79 +1,84 @@
 package com.nadimnesar.jobqueue.worker.service;
 
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
-import com.nadimnesar.jobqueue.common.dto.JobProcessResult;
+import com.nadimnesar.jobqueue.common.constant.enums.JobAckStatus;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
 import com.nadimnesar.jobqueue.worker.handler.JobHandler;
 import com.nadimnesar.jobqueue.worker.handler.JobHandlerRegistry;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JobProcessorService {
-    private static final Logger logger = LoggerFactory.getLogger(JobProcessorService.class);
 
     private final JobDependencyService jobDependencyService;
     private final JobHandlerRegistry jobHandlerRegistry;
+    private final JobStateService jobStateService;
     private final JobRepository jobRepository;
 
-    public JobProcessResult processJob(String jobId) {
-        logger.info("Processing job with id: {}", jobId);
+    public JobAckStatus processJob(String jobId) {
+        log.info("Processing job with id: {}", jobId);
 
-        Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
+        UUID jobUuid;
+        try {
+            jobUuid = UUID.fromString(jobId);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid job ID format: '{}', acking to remove corrupt message", jobId);
+            return JobAckStatus.ACK;
+        }
+
+        Optional<JobEntity> optionalJob = jobRepository.findById(jobUuid);
         if (optionalJob.isEmpty()) {
-            logger.error("Job with ID: {} not found", jobId);
-            return JobProcessResult.ACK;
+            log.error("Job with ID: {} not found", jobId);
+            return JobAckStatus.ACK;
         }
 
         var job = optionalJob.get();
         switch (job.getStatus()) {
             case JobStatus.CANCELED:
-                logger.info("Job with ID: {} already canceled, no needs to process it", jobId);
-                return JobProcessResult.ACK;
+                log.info("Job with ID: {} already canceled, no needs to process it", jobId);
+                return JobAckStatus.ACK;
             case JobStatus.COMPLETED:
-                logger.info("Job with ID: {} already completed", jobId);
-                return JobProcessResult.ACK;
-            default:
-                break;
+                log.info("Job with ID: {} already completed", jobId);
+                return JobAckStatus.ACK;
+            case JobStatus.DEAD:
+                log.warn("Job {} is dead, acking to remove from queue", jobId);
+                return JobAckStatus.ACK;
         }
 
         if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
-            logger.info("Job with ID: {} has dependencies, will retry after delay", jobId);
-            return JobProcessResult.NACK;
+            log.info("Job with ID: {} has dependencies, will retry after delay", jobId);
+            return JobAckStatus.NACK;
         }
 
-        if (checkCanceled(job.getId())) {
-            return JobProcessResult.ACK;
+        Optional<JobHandler> handlerOpt = jobHandlerRegistry.getHandler(job.getType());
+        if (handlerOpt.isEmpty()) {
+            log.error("No handler registered for job type: {}, jobId={}", job.getType(), jobId);
+            jobStateService.handleFailedJob(job, "No handler registered for job type: " + job.getType());
+            return JobAckStatus.NACK;
         }
 
-        JobHandler handler = jobHandlerRegistry.getHandler(job.getType());
-        if (handler == null) {
-            logger.error("No handler registered for job type: {}, jobId={}", job.getType(), jobId);
-            handleFailedJob(job, "Unknown job type: " + job.getType());
-            return JobProcessResult.NACK;
-        }
+        JobHandler handler = handlerOpt.get();
 
         updateJobAsProcessing(job);
 
         try {
             handler.handle(job);
-            if (!checkCanceled(job.getId())) {
-                handleCompletedJob(job);
-            }
-            return JobProcessResult.ACK;
+            jobStateService.handleCompletedJob(job);
+            return JobAckStatus.ACK;
         } catch (Exception e) {
-            logger.error("Handler failed for job id={}, type={}: {}", job.getId(), job.getType(), e.getMessage(), e);
-            handleFailedJob(job, e.getMessage());
-            return JobProcessResult.NACK;
+            log.error("Handler failed for job id={}, type={}: {}", job.getId(), job.getType(), e.getMessage(), e);
+            jobStateService.handleFailedJob(job, e.getMessage());
+            return JobAckStatus.NACK;
         }
     }
 
@@ -81,38 +86,5 @@ public class JobProcessorService {
         job.setStatus(JobStatus.PROCESSING);
         job.setStartedAt(LocalDateTime.now());
         jobRepository.save(job);
-    }
-
-    private void handleFailedJob(JobEntity job, String reason) {
-        job.setStatus(JobStatus.FAILED);
-        job.setCompletedAt(null);
-
-        if (job.getStartedAt() == null) {
-            job.setStartedAt(LocalDateTime.now());
-        }
-        job.setResult(reason != null ? reason : "Unknown error");
-        jobRepository.save(job);
-    }
-
-    private void handleCompletedJob(JobEntity job) {
-        job.setStatus(JobStatus.COMPLETED);
-        job.setResult("Job completed successfully");
-
-        if (job.getCompletedAt() == null) {
-            job.setCompletedAt(LocalDateTime.now());
-        }
-
-        if (job.getStartedAt() == null) {
-            job.setStartedAt(LocalDateTime.now());
-        }
-
-        jobDependencyService.informDependents(job.getId());
-        jobRepository.save(job);
-    }
-
-    private boolean checkCanceled(UUID jobId) {
-        return jobRepository.findById(jobId)
-                .map(j -> j.getStatus() == JobStatus.CANCELED)
-                .orElse(false);
     }
 }

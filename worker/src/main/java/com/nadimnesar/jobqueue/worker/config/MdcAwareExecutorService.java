@@ -3,25 +3,15 @@ package com.nadimnesar.jobqueue.worker.config;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.MDC;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
-/**
- * An {@link ExecutorService} decorator that propagates the MDC (Mapped Diagnostic
- * Context) from the submitting thread to the executing thread.
- * <p>
- * This ensures that tracing context ({@code traceId}, {@code spanId}) set via MDC
- * in the caller is available inside the task, even when running on virtual threads
- * or other pooled executors where thread-local state is not automatically inherited.
- */
 public class MdcAwareExecutorService implements ExecutorService {
 
     private final ExecutorService delegate;
 
     public MdcAwareExecutorService(ExecutorService delegate) {
-        this.delegate = delegate;
+        this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
     }
 
     @Override
@@ -75,71 +65,74 @@ public class MdcAwareExecutorService implements ExecutorService {
 
     @Override
     @NonNull
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        return delegate.invokeAll(tasks.stream().map(this::wrap).toList());
+    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks) throws InterruptedException {
+        return delegate.invokeAll(wrapTasks(tasks));
     }
 
     @Override
     @NonNull
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
+    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks,
                                          long timeout,
                                          @NonNull TimeUnit unit) throws InterruptedException {
-        return delegate.invokeAll(tasks.stream().map(this::wrap).toList(), timeout, unit);
+        return delegate.invokeAll(wrapTasks(tasks), timeout, unit);
     }
 
     @Override
     @NonNull
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return delegate.invokeAny(tasks.stream().map(this::wrap).toList());
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks)
+            throws InterruptedException, ExecutionException {
+        return delegate.invokeAny(wrapTasks(tasks));
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks,
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks,
                            long timeout,
-                           @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return delegate.invokeAny(tasks.stream().map(this::wrap).toList(), timeout, unit);
+                           @NonNull TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        return delegate.invokeAny(wrapTasks(tasks), timeout, unit);
     }
 
-    // ---- Private helpers ----
+    private <T> List<Callable<T>> wrapTasks(Collection<? extends Callable<T>> tasks) {
+        if (tasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return tasks.stream()
+                .map(this::wrap)
+                .toList();
+    }
+
+    private static void setMdc(Map<String, String> context) {
+        if (context == null || context.isEmpty()) {
+            MDC.clear();
+        } else {
+            MDC.setContextMap(context);
+        }
+    }
 
     private Runnable wrap(Runnable task) {
-        Map<String, String> context = MDC.getCopyOfContextMap();
+        final Map<String, String> captured = MDC.getCopyOfContextMap();
+
         return () -> {
-            Map<String, String> previous = MDC.getCopyOfContextMap();
-            if (context != null) {
-                MDC.setContextMap(context);
-            } else {
-                MDC.clear();
-            }
+            final Map<String, String> previous = MDC.getCopyOfContextMap();
             try {
+                setMdc(captured);
                 task.run();
             } finally {
-                if (previous != null) {
-                    MDC.setContextMap(previous);
-                } else {
-                    MDC.clear();
-                }
+                setMdc(previous);
             }
         };
     }
 
     private <T> Callable<T> wrap(Callable<T> task) {
-        Map<String, String> context = MDC.getCopyOfContextMap();
+        final Map<String, String> captured = MDC.getCopyOfContextMap();
+
         return () -> {
-            Map<String, String> previous = MDC.getCopyOfContextMap();
-            if (context != null) {
-                MDC.setContextMap(context);
-            } else {
-                MDC.clear();
-            }
+            final Map<String, String> previous = MDC.getCopyOfContextMap();
             try {
+                setMdc(captured);
                 return task.call();
             } finally {
-                if (previous != null) {
-                    MDC.setContextMap(previous);
-                } else {
-                    MDC.clear();
-                }
+                setMdc(previous);
             }
         };
     }

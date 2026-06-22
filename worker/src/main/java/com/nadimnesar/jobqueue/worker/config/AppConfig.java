@@ -8,7 +8,8 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class AppConfig {
-    @Bean
+
+    @Bean(destroyMethod = "shutdown")
     public ExecutorService virtualThreadParTaskExecutor() {
         return new MdcAwareExecutorService(Executors.newVirtualThreadPerTaskExecutor());
     }

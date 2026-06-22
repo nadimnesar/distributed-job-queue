@@ -29,6 +29,8 @@ spring:
     virtual-host: /
     listener:
       simple:
+        # These settings apply only to @RabbitListener-based consumers (e.g., JobRetryService).
+        # The main consumer (JobConsumerService) uses basicGet with autoAck=false via JobQueueService.consume().
         acknowledge-mode: manual
         prefetch: 1
         retry:
@@ -48,7 +50,6 @@ app:
   rabbitmq:
     startup-check:
       enabled: true
-
 
 logging:
   level:

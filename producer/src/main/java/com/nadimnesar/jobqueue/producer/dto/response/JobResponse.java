@@ -1,5 +1,6 @@
 package com.nadimnesar.jobqueue.producer.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 @Builder
 public class JobResponse {

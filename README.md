@@ -72,7 +72,7 @@ tolerance,and handles job dependencies and failures gracefully.
 
 4. Apply the Kustomize overlay to the cluster:
    ```bash
-   make apply
+   make deploy
    ```
 
 5. Delete the resources when done:
@@ -84,7 +84,6 @@ Useful commands:
 
 - `make status` — show Minikube status
 - `make ip` — print the Minikube IP
-- `make render` — render the Kustomize overlay to stdout (preview the rendered manifests)
 
 ### API Endpoints
 

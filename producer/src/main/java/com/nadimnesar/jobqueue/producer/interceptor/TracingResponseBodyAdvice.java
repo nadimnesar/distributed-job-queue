@@ -1,6 +1,6 @@
 package com.nadimnesar.jobqueue.producer.interceptor;
 
-import com.nadimnesar.jobqueue.common.constant.Constants;
+import com.nadimnesar.jobqueue.common.constant.AppConstants;
 import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.MDC;
@@ -24,12 +24,10 @@ public class TracingResponseBodyAdvice implements ResponseBodyAdvice<CommonRespo
                             @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         Class<?> type = returnType.getParameterType();
 
-        // Direct CommonResponse return (non-ResponseEntity)
         if (CommonResponse.class.isAssignableFrom(type)) {
             return true;
         }
 
-        // ResponseEntity<CommonResponse> or HttpEntity<CommonResponse>
         if (HttpEntity.class.isAssignableFrom(type)) {
             Type genericType = returnType.getGenericParameterType();
             if (genericType instanceof ParameterizedType parameterizedType) {
@@ -51,8 +49,8 @@ public class TracingResponseBodyAdvice implements ResponseBodyAdvice<CommonRespo
                                           @NonNull ServerHttpRequest request,
                                           @NonNull ServerHttpResponse response) {
         if (body != null) {
-            body.setTraceId(MDC.get(Constants.MDC_TRACE_ID));
-            body.setSpanId(MDC.get(Constants.MDC_SPAN_ID));
+            body.setTraceId(MDC.get(AppConstants.MDC_TRACE_ID));
+            body.setSpanId(MDC.get(AppConstants.MDC_SPAN_ID));
         }
 
         return body;
