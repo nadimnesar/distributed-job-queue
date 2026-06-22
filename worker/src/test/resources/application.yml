@@ -18,3 +18,8 @@ spring:
 schedule:
   cron:
     consume: "*/10 * * * * *"
+
+app:
+  rabbitmq:
+    startup-check:
+      enabled: false

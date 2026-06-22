@@ -46,6 +46,12 @@ pvc:
 logs-postgres:
 	$(KUBECTL) logs -n $(NAMESPACE) -l app=postgres --tail=1000 -f
 
+logs-producer:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=producer --tail=1000 -f
+
+logs-worker:
+	$(KUBECTL) logs -n $(NAMESPACE) -l app=worker --tail=1000 -f
+
 logs-rabbitmq:
 	$(KUBECTL) logs -n $(NAMESPACE) -l app=rabbitmq --tail=1000 -f
 

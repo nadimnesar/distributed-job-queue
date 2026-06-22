@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: distributed-job-queue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      initContainers:
+        - name: wait-for-pgbouncer
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PgBouncer on pgbouncer:6432..."
+              until nc -z pgbouncer 6432 2>/dev/null; do sleep 2; done
+              echo "PgBouncer is up"
+        - name: wait-for-rabbitmq
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for RabbitMQ on rabbitmq:5672..."
+              until nc -z rabbitmq 5672 2>/dev/null; do sleep 2; done
+              echo "RabbitMQ is up"
+        - name: wait-for-migration
+          image: postgres:16-alpine
+          env:
+            - name: PGPASSWORD
+              value: apppass
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for migration to complete..."
+              until psql -h pgbouncer -p 6432 -U appuser -d appdb -t -c "SELECT 1 FROM information_schema.tables WHERE table_name = 'job'" 2>/dev/null | grep -q 1; do
+                sleep 3
+              done
+              echo "Migration completed"
+      containers:
+        - name: worker
+          image: worker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://pgbouncer:6432/appdb?prepareThreshold=0"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: appuser
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: apppass
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USERNAME
+              value: admin
+            - name: RABBITMQ_PASSWORD
+              value: admin

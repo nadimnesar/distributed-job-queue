@@ -8,30 +8,37 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.amqp.autoconfigure.RabbitProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(
-        prefix = "app.rabbitmq.startup-check", name = "enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(AppRabbitProperties.class)
 public class RabbitMQStartupChecker implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMQStartupChecker.class);
 
     private final ConnectionFactory connectionFactory;
     private final RabbitProperties rabbitProperties;
+    private final AppRabbitProperties appRabbitProperties;
     private final Environment environment;
 
     public RabbitMQStartupChecker(ConnectionFactory connectionFactory,
                                   RabbitProperties rabbitProperties,
+                                  AppRabbitProperties appRabbitProperties,
                                   Environment environment) {
         this.connectionFactory = connectionFactory;
         this.rabbitProperties = rabbitProperties;
+        this.appRabbitProperties = appRabbitProperties;
         this.environment = environment;
     }
 
     @Override
     public void run(@NonNull ApplicationArguments args) {
+        if (!appRabbitProperties.startupCheck().enabled()) {
+            logger.info("RabbitMQ startup check disabled, skipping");
+            return;
+        }
+
         String appName = environment.getProperty("spring.application.name", "application");
         String host = rabbitProperties.getHost();
         Integer portObj = rabbitProperties.getPort();
