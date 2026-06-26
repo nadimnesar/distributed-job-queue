@@ -87,23 +87,19 @@ Useful commands:
 
 ### API Endpoints
 
-Download the Postman collection and environment for testing the APIs.
-
-[Postman Collection](docs/postman/distributed-job-queue.postman_collection.json)
-[Postman Environment](docs/postman/distributed-job-queue.postman_environment.json)
+- `POST /api/v1/job/create` - Create a new job
+- `GET /api/v1/jobs` - Get all jobs (paginated)
+- `GET /api/v1/jobs/{id}` - Get job by ID
+- `GET /api/v1/jobs/filter` - Filter jobs by status and/or type
+- `POST /api/v1/jobs/{id}/cancel` - Cancel a job
+- `POST /api/v1/jobs/{id}/revive` - Revive a specific dead job
+- `POST /api/v1/jobs/revive` - Revive all dead jobs
+- `GET /api/v1/dashboard/jobs/summary` - Get jobs summary
+- `GET /api/v1/dashboard/queue-metrics` - Get queue metrics
 
 ### Logs
 
-All logs are stored in the following directory: `docs/logs/`
-
-Use the following commands to view logs in real-time:
-
-```bash
-# View log files for all producer instances
-ls docs/logs/producer-*.log
-# View logs for a specific producer instance (example: producer-062f8e6ef23)
-tail -f docs/logs/producer-062f8e6ef23.log
-```
+Use Kibana: http://192.168.49.2
 
 ## Future Enhancements
 

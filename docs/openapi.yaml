@@ -1,0 +1,701 @@
+openapi: 3.0.3
+
+info:
+  title: Distributed Job Queue API
+  version: 1.0.0
+  description: |
+    REST API for the producer service of the Distributed Job Queue system.
+
+    The producer accepts job submissions, manages job lifecycle (cancel, revive),
+    and exposes read operations (paginated listing, filtering, and dashboard
+    metrics). All operations are served under the `/api/v1` base path.
+
+    Every response — success or error — is wrapped in a common `CommonResponse`
+    envelope containing `message`, `code`, `data`, and optional `traceId`/`spanId`
+    fields. Error responses omit `data` and carry a human-readable `message`.
+  contact:
+    name: nadimnesar
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: http://192.168.49.2
+    description: Kubernetes via NGINX Ingress
+
+tags:
+  - name: Jobs
+    description: Job lifecycle operations (create, cancel, revive, list, filter, get).
+  - name: Dashboard
+    description: Aggregated dashboard metrics (job summary and queue lengths).
+
+paths:
+  /api/v1/job/create:
+    post:
+      tags:
+        - Jobs
+      operationId: createJob
+      summary: Submit a new job
+      description: |
+        Validates and persists a new job, registers its dependencies, and publishes
+        it to the priority queue after the transaction commits.
+
+        On success returns `201 CREATED` with the created job in `data`.
+        Returns `400` for validation errors (missing/blank fields, invalid enum,
+        unknown or invalid dependencies, priority hierarchy violations) or malformed
+        JSON. Returns `500` for unexpected server errors.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+            examples:
+              sample:
+                summary: Sample email-sending job
+                value:
+                  priority: HIGH
+                  type: EMAIL_SENDING
+                  payload: Send welcome email to user 123
+                  dependencies: []
+                  maxAttemptCount: 3
+      responses:
+        '201':
+          description: Job created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseJobResponse'
+              example:
+                message: Job is created successfully.
+                code: 201
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  priority: HIGH
+                  type: EMAIL_SENDING
+                  status: PENDING
+                  dependents: []
+                  dependencies: []
+                  attemptCount: 0
+                  maxAttemptCount: 3
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/{id}/cancel:
+    post:
+      tags:
+        - Jobs
+      operationId: cancelJob
+      summary: Cancel a job by id
+      description: |
+        Cancels a job that is not yet in a terminal or processing state.
+
+        - `202 ACCEPTED` on success (job marked CANCELED and dependents informed).
+        - `400` if the job is already CANCELED, COMPLETED, or DEAD.
+        - `409 CONFLICT` if the job is currently PROCESSING (cannot be cancelled).
+        - `404` if no job exists with the given id.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '202':
+          description: Job cancelled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponse'
+              example:
+                message: Job is cancelled successfully
+                code: 202
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs:
+    get:
+      tags:
+        - Jobs
+      operationId: getJobs
+      summary: List jobs (paginated)
+      description: |
+        Returns a page of all jobs, newest-first ordering aside from pagination.
+
+        `page` is zero-indexed. `size` must be between 1 and 200 inclusive.
+        Returns `400` on constraint violation (page < 0 or size out of range).
+      parameters:
+        - name: page
+          in: query
+          required: true
+          description: Zero-indexed page number.
+          schema:
+            type: integer
+            minimum: 0
+            example: 0
+        - name: size
+          in: query
+          required: true
+          description: Number of jobs per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            example: 20
+      responses:
+        '200':
+          description: A page of jobs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseJobResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/{id}:
+    get:
+      tags:
+        - Jobs
+      operationId: getJobById
+      summary: Get a single job by id
+      description: |
+        Returns the job with the given id.
+        Returns `404` if no job exists with the given id.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: The requested job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseJobResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/filter:
+    get:
+      tags:
+        - Jobs
+      operationId: filterJobs
+      summary: Filter jobs by status and/or type
+      description: |
+        Returns a page of jobs filtered by status and/or type. At least one of
+        `status` or `type` must be provided, otherwise `400` is returned.
+
+        `status` must be a valid `JobStatus` value and `type` must be a valid
+        `JobType` value. Matching is case-insensitive (values are upper-cased
+        before lookup). An invalid enum value results in `400`.
+
+        When both `status` and `type` are provided, jobs matching both are
+        returned. Pagination defaults to page 0, size 20.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Job status to filter by (case-insensitive).
+          schema:
+            $ref: '#/components/schemas/JobStatus'
+        - name: type
+          in: query
+          required: false
+          description: Job type to filter by (case-insensitive).
+          schema:
+            $ref: '#/components/schemas/JobType'
+        - name: page
+          in: query
+          required: false
+          description: Zero-indexed page number.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Number of jobs per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+      responses:
+        '200':
+          description: A page of jobs matching the filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseJobResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/{id}/revive:
+    post:
+      tags:
+        - Jobs
+      operationId: reviveDeadJobById
+      summary: Revive a single dead job by id
+      description: |
+        Resets a DEAD job back to PENDING and re-publishes it to the queue after
+        the transaction commits.
+
+        - `200` on success with `data` set to the revived job id (string).
+        - `400` if the job is not in the DEAD state (failed jobs are retried
+          automatically and cannot be manually revived).
+        - `404` if no job exists with the given id.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: Job revived successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseString'
+              example:
+                message: Job revived successfully
+                code: 200
+                data: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/revive:
+    post:
+      tags:
+        - Jobs
+      operationId: reviveAllDeadJobs
+      summary: Revive all dead jobs
+      description: |
+        Consumes the dead-letter queue and revives every dead job back to PENDING,
+        re-publishing each to its priority queue.
+
+        - `200` on success with `data` set to a list of revived job id strings.
+        - `404` if there are no dead jobs to revive.
+      responses:
+        '200':
+          description: Dead jobs revived successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseStringList'
+              example:
+                message: Operation Successful.
+                code: 200
+                data:
+                  - 550e8400-e29b-41d4-a716-446655440000
+                  - 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/dashboard/jobs/summary:
+    get:
+      tags:
+        - Dashboard
+      operationId: getJobsSummary
+      summary: Get job counts grouped by status
+      description: |
+        Returns counts of jobs grouped by status, plus a `TOTAL` entry with the
+        overall job count. `data` is an object mapping each `JobStatus` name to
+        its count (integer), including a `TOTAL` key.
+      responses:
+        '200':
+          description: Job status summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseJobsSummary'
+              example:
+                message: Operation Successful.
+                code: 200
+                data:
+                  PENDING: 12
+                  PROCESSING: 3
+                  CANCELED: 1
+                  COMPLETED: 45
+                  FAILED: 2
+                  DEAD: 1
+                  TOTAL: 64
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/dashboard/queue-metrics:
+    get:
+      tags:
+        - Dashboard
+      operationId: getQueueMetrics
+      summary: Get queue message counts
+      description: |
+        Returns the current message count for each managed queue. `data` is an
+        object with a `queues` field containing the length of each priority,
+        retry, and dead-letter queue.
+      responses:
+        '200':
+          description: Queue metrics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponseQueueMetrics'
+              example:
+                message: Operation Successful.
+                code: 200
+                data:
+                  queues:
+                    HIGH_PRIORITY_QUEUE_LENGTH: 4
+                    MEDIUM_PRIORITY_QUEUE_LENGTH: 7
+                    LOW_PRIORITY_QUEUE_LENGTH: 15
+                    RETRY_QUEUE_LENGTH: 2
+                    DEAD_LETTER_QUEUE_LENGTH: 1
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    JobIdPath:
+      name: id
+      in: path
+      required: true
+      description: UUID of the target job.
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+
+  responses:
+    BadRequest:
+      description: |
+        Bad request. The request was malformed, failed validation, or violated a
+        business rule. `data` is omitted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommonResponseError'
+          examples:
+            validation:
+              summary: Validation error
+              value:
+                message: "Validation error: payload: Payload cannot be blank"
+                code: 400
+            malformedJson:
+              summary: Malformed JSON
+              value:
+                message: Malformed JSON request
+                code: 400
+            constraint:
+              summary: Constraint violation
+              value:
+                message: Bad request
+                code: 400
+            businessRule:
+              summary: Business rule violation
+              value:
+                message: At least one of 'status' or 'type' must be provided
+                code: 400
+    NotFound:
+      description: |
+        Not found. The referenced resource does not exist. `data` is omitted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommonResponseError'
+          examples:
+            jobNotFound:
+              summary: Job not found
+              value:
+                message: No job found with given id.
+                code: 404
+            noDeadJobs:
+              summary: No dead jobs to revive
+              value:
+                message: No dead jobs found to revive
+                code: 404
+    Conflict:
+      description: |
+        Conflict. The request cannot be applied to the resource in its current
+        state. `data` is omitted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommonResponseError'
+          example:
+            message: Conflict
+            code: 409
+    InternalError:
+      description: |
+        Internal server error. An unexpected error occurred. `data` is omitted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommonResponseError'
+          example:
+            message: Internal server error
+            code: 500
+
+  schemas:
+    JobPriority:
+      type: string
+      description: Priority level of a job. Higher priority jobs are processed first.
+      enum:
+        - HIGH
+        - MEDIUM
+        - LOW
+      example: HIGH
+
+    JobType:
+      type: string
+      description: The kind of work a job represents.
+      enum:
+        - EMAIL_SENDING
+        - PAYMENT_SENDING
+      example: EMAIL_SENDING
+
+    JobStatus:
+      type: string
+      description: |
+        Lifecycle status of a job. Typical flow:
+        PENDING → PROCESSING → COMPLETED (success) or FAILED (recoverable) or
+        CANCELED (invalid). A FAILED job moves to DEAD once retries are exhausted.
+      enum:
+        - PENDING
+        - PROCESSING
+        - CANCELED
+        - COMPLETED
+        - FAILED
+        - DEAD
+      example: PENDING
+
+    JobRequest:
+      type: object
+      description: Request body for creating a new job.
+      required:
+        - priority
+        - type
+        - payload
+      properties:
+        priority:
+          $ref: '#/components/schemas/JobPriority'
+        type:
+          $ref: '#/components/schemas/JobType'
+        dependencies:
+          type: array
+          description: |
+            UUIDs of jobs that must complete before this job can be processed.
+            A maximum of 100 dependencies is allowed. Defaults to an empty array.
+          maxItems: 100
+          default: []
+          items:
+            type: string
+            format: uuid
+        payload:
+          type: string
+          description: Opaque payload for the job. Must not be blank.
+          minLength: 1
+          maxLength: 10000
+          example: Send welcome email to user 123
+        maxAttemptCount:
+          type: integer
+          description: |
+            Maximum number of processing attempts before the job is moved to DEAD.
+            Optional; when omitted the server default applies. Must be between 1
+            and 100 inclusive.
+          minimum: 1
+          maximum: 100
+          nullable: true
+          example: 3
+
+    JobResponse:
+      type: object
+      description: |
+        Representation of a job. Null fields are omitted from the serialized
+        response.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the job.
+        priority:
+          $ref: '#/components/schemas/JobPriority'
+        type:
+          $ref: '#/components/schemas/JobType'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        dependents:
+          type: array
+          description: UUIDs of jobs that depend on this job.
+          items:
+            type: string
+            format: uuid
+        dependencies:
+          type: array
+          description: UUIDs of jobs this job depends on.
+          items:
+            type: string
+            format: uuid
+        result:
+          type: string
+          description: Result of the job once completed, if any.
+          nullable: true
+        attemptCount:
+          type: integer
+          description: Number of processing attempts made so far.
+          nullable: true
+        maxAttemptCount:
+          type: integer
+          description: Maximum number of attempts before the job is moved to DEAD.
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          description: Timestamp when processing started.
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when processing completed.
+          nullable: true
+
+    CommonResponse:
+      type: object
+      description: |
+        Envelope wrapping every API response (success and error). On error
+        responses `data` is omitted. `traceId` and `spanId` are present only
+        when tracing context is available.
+      properties:
+        message:
+          type: string
+          description: Human-readable status message.
+          default: Operation Successful.
+        code:
+          type: integer
+          description: HTTP status code mirrored in the body.
+          default: 200
+        data:
+          description: The response payload. Type depends on the endpoint.
+        traceId:
+          type: string
+          description: Distributed trace identifier, when available.
+          nullable: true
+        spanId:
+          type: string
+          description: Span identifier, when available.
+          nullable: true
+
+    CommonResponseError:
+      description: |
+        Error envelope. Identical to `CommonResponse` but `data` is always
+        omitted on error responses.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+
+    CommonResponseJobResponse:
+      description: CommonResponse whose `data` is a single JobResponse.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/JobResponse'
+
+    CommonResponseJobResponseList:
+      description: CommonResponse whose `data` is an array of JobResponse.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/JobResponse'
+
+    CommonResponseString:
+      description: CommonResponse whose `data` is a single string.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              type: string
+
+    CommonResponseStringList:
+      description: CommonResponse whose `data` is an array of strings.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
+
+    JobsSummary:
+      type: object
+      description: Counts of jobs grouped by status, including a TOTAL entry.
+      properties:
+        PENDING:
+          type: integer
+        PROCESSING:
+          type: integer
+        CANCELED:
+          type: integer
+        COMPLETED:
+          type: integer
+        FAILED:
+          type: integer
+        DEAD:
+          type: integer
+        TOTAL:
+          type: integer
+          description: Total number of jobs across all statuses.
+
+    CommonResponseJobsSummary:
+      description: CommonResponse whose `data` is a JobsSummary object.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/JobsSummary'
+
+    QueueMetrics:
+      type: object
+      description: Message counts for each managed queue.
+      properties:
+        queues:
+          type: object
+          description: Map of queue name to current message count.
+          properties:
+            HIGH_PRIORITY_QUEUE_LENGTH:
+              type: integer
+            MEDIUM_PRIORITY_QUEUE_LENGTH:
+              type: integer
+            LOW_PRIORITY_QUEUE_LENGTH:
+              type: integer
+            RETRY_QUEUE_LENGTH:
+              type: integer
+            DEAD_LETTER_QUEUE_LENGTH:
+              type: integer
+
+    CommonResponseQueueMetrics:
+      description: CommonResponse whose `data` is a QueueMetrics object.
+      allOf:
+        - $ref: '#/components/schemas/CommonResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/QueueMetrics'

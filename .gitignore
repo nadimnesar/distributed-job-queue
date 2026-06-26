@@ -37,3 +37,7 @@ build/
 ### AI ###
 /.opencode/
 /opencode.json
+
+### Bruno ###
+bruno/node_modules/
+bruno/.env
