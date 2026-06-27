@@ -62,6 +62,11 @@ public class JobDependencyService {
         jobDependencyRepository.deleteByDependencyId(jobId);
     }
 
+    @Transactional
+    public int cleanupStaleDependencies(UUID jobId) {
+        return jobDependencyRepository.deleteStaleDependenciesByJobId(jobId);
+    }
+
     private void addDependency(UUID jobId, UUID dependencyId) {
         if (jobId.equals(dependencyId)) {
             throw new IllegalArgumentException("A job cannot depend on itself: " + jobId);

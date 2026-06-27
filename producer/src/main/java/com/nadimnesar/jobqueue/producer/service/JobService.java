@@ -3,6 +3,7 @@ package com.nadimnesar.jobqueue.producer.service;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
+import com.nadimnesar.jobqueue.common.dto.ConsumedDlqMessage;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.service.JobDependencyService;
@@ -37,7 +38,7 @@ public class JobService {
     public CommonResponse submitJob(JobRequest jobRequest) {
         log.info("Submitting job {}", jobRequest);
 
-        validateJobRequest(jobRequest);
+        Set<UUID> dependenciesToPersist = validateJobRequest(jobRequest);
 
         JobEntity jobEntity = JobEntity.builder()
                 .priority(jobRequest.getPriority())
@@ -51,7 +52,7 @@ public class JobService {
 
         JobEntity savedJob = jobRepository.save(jobEntity);
 
-        jobDependencyService.setDependencies(savedJob.getId(), jobRequest.getDependencies());
+        jobDependencyService.setDependencies(savedJob.getId(), dependenciesToPersist);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
@@ -72,12 +73,12 @@ public class JobService {
                 .build();
     }
 
-    private void validateJobRequest(JobRequest jobRequest) {
+    private Set<UUID> validateJobRequest(JobRequest jobRequest) {
         Set<UUID> dependencies = jobRequest.getDependencies();
 
         if (dependencies == null || dependencies.isEmpty()) {
             log.info("Job request has no dependencies");
-            return;
+            return Collections.emptySet();
         }
 
         List<JobEntity> dependencyJobs = jobRepository.findAllById(dependencies);
@@ -115,6 +116,11 @@ public class JobService {
                                 jobRequest.getPriority(), dependency.getPriority()));
             }
         }
+
+        return dependencyJobs.stream()
+                .filter(job -> job.getStatus() != JobStatus.COMPLETED)
+                .map(JobEntity::getId)
+                .collect(Collectors.toSet());
     }
 
     private boolean isPriorityViolation(JobPriority dependencyPriority, JobPriority jobPriority) {
@@ -240,17 +246,18 @@ public class JobService {
     public CommonResponse reviveAllDeadJobs() {
         log.info("Starting to revive dead jobs");
 
-        List<String> revivedJobIds = jobQueueService.consumeDeadLetters();
+        List<ConsumedDlqMessage> revivedJobs = jobQueueService.consumeDeadLetters();
 
-        if (revivedJobIds.isEmpty()) {
+        if (revivedJobs.isEmpty()) {
             log.info("No dead jobs found to revive");
             return CommonResponse.notFound("No dead jobs found to revive");
         }
 
+        List<String> revivedJobIds = revivedJobs.stream().map(ConsumedDlqMessage::jobId).toList();
         log.info("Reviving dead jobs: {}", revivedJobIds);
 
         try {
-            return jobRecoveryService.resetAndSaveRevivedJobs(revivedJobIds);
+            return jobRecoveryService.resetAndSaveRevivedJobs(revivedJobs);
         } catch (Exception e) {
             log.error("Failed to save revived jobs after consuming DLQ. Job IDs {} have been removed from the DLQ" +
                     " but remain DEAD in the database. Manual re-enqueue required.", revivedJobIds, e);

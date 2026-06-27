@@ -10,8 +10,7 @@ import com.nadimnesar.jobqueue.common.service.JobQueueService;
 import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -22,11 +21,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JobRetryService {
-    private static final Logger logger = LoggerFactory.getLogger(JobRetryService.class);
-
     private final JobQueueService jobQueueService;
     private final JobRepository jobRepository;
     private final JobDependencyService jobDependencyService;
@@ -41,7 +39,7 @@ public class JobRetryService {
         TracingUtils.setTraceId(traceId);
         TracingUtils.setNewSpanId();
 
-        logger.info("Received retry message for job: {}", jobId);
+        log.info("Received retry message for job: {}", jobId);
 
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
@@ -49,15 +47,13 @@ public class JobRetryService {
             jobQueueService.ack(channel, deliveryTag, jobId);
         } catch (Exception e) {
             if (isTransientException(e)) {
-                // Transient error (DB, RabbitMQ) — don't ack, let RabbitMQ redeliver
-                logger.error("Transient error processing retry job {}, will be redelivered: {}", jobId, e.getMessage(), e);
+                log.error("Transient error processing retry job {}, will be redelivered: {}", jobId, e.getMessage(), e);
             } else {
-                // Permanent error — mark as dead and ack to remove from queue
-                logger.error("Permanent error processing retry job {}, marking as DEAD: {}", jobId, e.getMessage(), e);
+                log.error("Permanent error processing retry job {}, marking as DEAD: {}", jobId, e.getMessage(), e);
                 try {
                     updateAsDead(jobId);
                 } catch (Exception ex) {
-                    logger.error("Failed to mark job {} as DEAD during error handling: {}", jobId, ex.getMessage(), ex);
+                    log.error("Failed to mark job {} as DEAD during error handling: {}", jobId, ex.getMessage(), ex);
                 }
                 jobQueueService.ack(channel, deliveryTag, jobId);
             }
@@ -69,47 +65,38 @@ public class JobRetryService {
     private void processRetryJob(String jobId) {
         Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
         if (optionalJob.isEmpty()) {
-            logger.error("Retry job with ID: {} not found in database", jobId);
+            log.error("Retry job with ID: {} not found in database", jobId);
             return;
         }
 
         JobEntity job = optionalJob.get();
         if (job.getStatus() == JobStatus.CANCELED) {
-            logger.info("Retry job with ID: {} is canceled, skipping", jobId);
+            log.info("Retry job with ID: {} is canceled, skipping", jobId);
             return;
         }
 
         if (job.getStatus() == JobStatus.COMPLETED) {
-            logger.info("Retry job with ID: {} already completed, skipping", jobId);
+            log.info("Retry job with ID: {} already completed, skipping", jobId);
             return;
         }
 
         if (job.getStatus() == JobStatus.DEAD) {
-            logger.info("Retry job with ID: {} is already dead, skipping", jobId);
+            log.info("Retry job with ID: {} is already dead, skipping", jobId);
             return;
         }
 
+        int cleanedCount = jobDependencyService.cleanupStaleDependencies(job.getId());
+        log.info("Cleaned up {} stale dependencies for retry job {}", cleanedCount, jobId);
+
         if (!jobDependencyService.getDependencies(job.getId()).isEmpty()) {
-            logger.info("Retry job {} still has unmet dependencies, re-publishing without incrementing attempt count",
+            log.info("Retry job {} still has unmet dependencies, re-publishing without incrementing attempt count",
                     jobId);
-            job.setStatus(JobStatus.PENDING);
-            job.setStartedAt(null);
-            job.setCompletedAt(null);
-            job.setResult(null);
-            jobRepository.save(job);
-            try {
-                jobQueueService.publish(job);
-                logger.info("Retry job {} re-routed to {} priority queue (waiting for dependencies)",
-                        jobId, job.getPriority());
-            } catch (Exception e) {
-                logger.error("Failed to re-publish retry job {} to queue — job is PENDING in DB but NOT in queue." +
-                        " Manual re-enqueue required: {}", jobId, e.getMessage(), e);
-            }
+            rerouteToPriorityQueue(job, " (waiting for dependencies)");
             return;
         }
 
         if (job.getAttemptCount() >= job.getMaxAttemptCount()) {
-            logger.warn("Max retry attempts reached for job with ID: {}, marking as DEAD", jobId);
+            log.warn("Max retry attempts reached for job with ID: {}, marking as DEAD", jobId);
             job.setStatus(JobStatus.DEAD);
             job.setResult("Max retry attempts reached");
             job.setCompletedAt(LocalDateTime.now());
@@ -119,9 +106,13 @@ public class JobRetryService {
         }
 
         job.setAttemptCount(job.getAttemptCount() + 1);
-        logger.info("Retry job {} attempt count incremented to {}/{}",
+        log.info("Retry job {} attempt count incremented to {}/{}",
                 jobId, job.getAttemptCount(), job.getMaxAttemptCount());
 
+        rerouteToPriorityQueue(job, "");
+    }
+
+    private void rerouteToPriorityQueue(JobEntity job, String logSuffix) {
         job.setStatus(JobStatus.PENDING);
         job.setStartedAt(null);
         job.setCompletedAt(null);
@@ -130,10 +121,10 @@ public class JobRetryService {
 
         try {
             jobQueueService.publish(job);
-            logger.info("Retry job {} re-routed to {} priority queue", jobId, job.getPriority());
+            log.info("Retry job {} re-routed to {} priority queue{}", job.getId(), job.getPriority(), logSuffix);
         } catch (Exception e) {
-            logger.error("Failed to re-publish retry job {} to queue — job is PENDING in DB but NOT in queue." +
-                    " Manual re-enqueue required: {}", jobId, e.getMessage(), e);
+            log.error("Failed to re-publish retry job {} to queue — job is PENDING in DB but NOT in queue." +
+                    " Manual re-enqueue required: {}", job.getId(), e.getMessage(), e);
         }
     }
 
@@ -144,7 +135,7 @@ public class JobRetryService {
     private void updateAsDead(String jobId) {
         Optional<JobEntity> optionalJob = jobRepository.findById(UUID.fromString(jobId));
         if (optionalJob.isEmpty()) {
-            logger.error("Failed to retry job with ID: {} not found in database", jobId);
+            log.error("Failed to retry job with ID: {} not found in database", jobId);
             return;
         }
 
@@ -155,6 +146,6 @@ public class JobRetryService {
         jobRepository.save(job);
         jobQueueService.moveToDeadLetter(jobId);
 
-        logger.info("Failed to retry job with ID: {}, forwarding to dlq", jobId);
+        log.info("Failed to retry job with ID: {}, forwarding to dlq", jobId);
     }
 }

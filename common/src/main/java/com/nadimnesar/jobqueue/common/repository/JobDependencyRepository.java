@@ -32,4 +32,15 @@ public interface JobDependencyRepository extends JpaRepository<JobDependencyEnti
 
     @Query("SELECT j FROM JobDependencyEntity j WHERE j.dependencyId IN :dependencyIds")
     List<JobDependencyEntity> findAllByDependencyIdIn(@Param("dependencyIds") Collection<UUID> dependencyIds);
+
+    @Modifying
+    @Query("""
+            DELETE FROM JobDependencyEntity d
+            WHERE d.jobId = :jobId
+            AND (
+                d.dependencyId IN (SELECT j.id FROM JobEntity j WHERE j.status = 'COMPLETED')
+                OR d.dependencyId NOT IN (SELECT j.id FROM JobEntity j)
+            )
+            """)
+    int deleteStaleDependenciesByJobId(@Param("jobId") UUID jobId);
 }

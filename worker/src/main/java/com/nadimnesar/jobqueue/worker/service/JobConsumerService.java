@@ -30,23 +30,26 @@ public class JobConsumerService {
         }
 
         String jobId = consumedMessage.jobId();
-        virtualThreadParTaskExecutor.submit(() -> {
-            try {
-                TracingUtils.setNewSpanId();
+        try {
+            virtualThreadParTaskExecutor.submit(() -> {
+                try {
+                    TracingUtils.setNewSpanId();
 
-                var result = jobProcessorService.processJob(jobId);
-                if (JobAckStatus.ACK.equals(result)) {
-                    jobQueueService.ack(consumedMessage);
-                } else {
+                    var result = jobProcessorService.processJob(jobId);
+                    if (JobAckStatus.ACK.equals(result)) {
+                        jobQueueService.ack(consumedMessage);
+                    } else {
+                        jobQueueService.nack(consumedMessage);
+                    }
+                } catch (Exception e) {
+                    log.error("Error processing job {}: {}", jobId, e.getMessage(), e);
                     jobQueueService.nack(consumedMessage);
+                } finally {
+                    TracingUtils.clearTracing();
                 }
-            } catch (Exception e) {
-                log.error("Error processing job {}: {}", jobId, e.getMessage(), e);
-                jobQueueService.nack(consumedMessage);
-            } finally {
-                TracingUtils.clearTracing();
-            }
-        });
-        TracingUtils.clearTracing();
+            });
+        } finally {
+            TracingUtils.clearTracing();
+        }
     }
 }

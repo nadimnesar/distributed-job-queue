@@ -40,8 +40,8 @@ public class JobController {
 
     @GetMapping("/jobs")
     public ResponseEntity<CommonResponse> getJobs(
-            @RequestParam @Min(0) int page,
-            @RequestParam @Min(1) @Max(200) int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
         log.info("Received get job request, pageNumber: {}, pageSize: {}", page, size);
         var response = jobService.getAllJobs(page, size);
         return ResponseEntity.status(response.getCode()).body(response);

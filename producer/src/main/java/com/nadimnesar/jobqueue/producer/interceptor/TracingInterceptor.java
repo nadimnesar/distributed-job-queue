@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -25,11 +24,20 @@ public class TracingInterceptor implements HandlerInterceptor {
         }
         String spanId = TracingUtils.newSpanId();
 
-        MDC.put(AppConstants.MDC_TRACE_ID, traceId);
-        MDC.put(AppConstants.MDC_SPAN_ID, spanId);
+        TracingUtils.setTraceId(traceId);
+        TracingUtils.setSpanId(spanId);
 
+        try {
+            logIncomingRequest(request);
+            return true;
+        } catch (Throwable t) {
+            TracingUtils.clearTracing();
+            throw t;
+        }
+    }
+
+    void logIncomingRequest(HttpServletRequest request) {
         log.info("Incoming request - Method: {}, URI: {}", request.getMethod(), request.getRequestURI());
-        return true;
     }
 
     @Override
@@ -38,7 +46,6 @@ public class TracingInterceptor implements HandlerInterceptor {
                                 @NonNull Object handler,
                                 Exception ex) {
         log.info("Request completed - Status: {}", response.getStatus());
-        MDC.remove(AppConstants.MDC_TRACE_ID);
-        MDC.remove(AppConstants.MDC_SPAN_ID);
+        TracingUtils.clearTracing();
     }
 }

@@ -3,20 +3,24 @@ package com.nadimnesar.jobqueue.common.service;
 import com.nadimnesar.jobqueue.common.constant.AppConstants;
 import com.nadimnesar.jobqueue.common.constant.RabbitMQConstants;
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
+import com.nadimnesar.jobqueue.common.dto.ConsumedDlqMessage;
 import com.nadimnesar.jobqueue.common.dto.ConsumedMessage;
 import com.nadimnesar.jobqueue.common.entity.JobEntity;
 import com.nadimnesar.jobqueue.common.util.TracingUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
+import com.rabbitmq.client.ShutdownSignalException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionListener;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -26,7 +30,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
@@ -56,38 +62,73 @@ public class JobQueueService {
     private final RabbitAdmin rabbitAdmin;
     private final ConnectionFactory connectionFactory;
 
+    private final ConcurrentHashMap<String, String> traceIdMap = new ConcurrentHashMap<>();
+
     @PostConstruct
     void initPublisherCallbacks() {
         rabbitTemplate.setMandatory(true);
 
         rabbitTemplate.setConfirmCallback(this::handlePublisherConfirm);
         rabbitTemplate.setReturnsCallback(this::handleReturnedMessage);
+
+        connectionFactory.addConnectionListener(new ConnectionListener() {
+            @Override
+            public void onCreate(Connection connection) {
+            }
+
+            @Override
+            public void onClose(@NonNull Connection connection) {
+                traceIdMap.clear();
+            }
+
+            @Override
+            public void onShutDown(@NonNull ShutdownSignalException signal) {
+                traceIdMap.clear();
+            }
+        });
     }
 
     private void handlePublisherConfirm(CorrelationData correlationData,
                                         boolean ack,
                                         String cause) {
         String jobId = extractJobId(correlationData);
+        String traceId = traceIdMap.remove(jobId);
 
-        if (ack) {
-            log.debug("Message published successfully to broker. jobId={}", jobId);
-            return;
+        try {
+            TracingUtils.setTraceId(traceId);
+            TracingUtils.setNewSpanId();
+
+            if (ack) {
+                log.debug("Message published successfully to broker. jobId={}", jobId);
+                return;
+            }
+
+            log.error("Broker NACK received. jobId={}, cause={}", jobId, cause);
+        } finally {
+            TracingUtils.clearTracing();
         }
-
-        log.error("Broker NACK received. jobId={}, cause={}", jobId, cause);
     }
 
     private void handleReturnedMessage(ReturnedMessage returned) {
         String body = new String(returned.getMessage().getBody(), StandardCharsets.UTF_8);
+        String traceId = extractTraceIdFromHeaders(
+                returned.getMessage().getMessageProperties().getHeaders());
 
-        log.error(
-                "Unroutable message detected. exchange={}, routingKey={}, replyCode={}, replyText={}, body={}",
-                returned.getExchange(),
-                returned.getRoutingKey(),
-                returned.getReplyCode(),
-                returned.getReplyText(),
-                body
-        );
+        try {
+            TracingUtils.setTraceId(traceId);
+            TracingUtils.setNewSpanId();
+
+            log.error(
+                    "Unroutable message detected. exchange={}, routingKey={}, replyCode={}, replyText={}, body={}",
+                    returned.getExchange(),
+                    returned.getRoutingKey(),
+                    returned.getReplyCode(),
+                    returned.getReplyText(),
+                    body
+            );
+        } finally {
+            TracingUtils.clearTracing();
+        }
     }
 
     private String extractJobId(CorrelationData correlationData) {
@@ -100,6 +141,11 @@ public class JobQueueService {
     public void publish(JobEntity job) {
         String jobId = job.getId().toString();
         String routingKey = resolveRoutingKey(job.getPriority());
+        String traceId = TracingUtils.getTraceId();
+        if (traceId != null) {
+            traceIdMap.put(jobId, traceId);
+        }
+
         log.info("Publishing job {} to exchange {} with routing key {}", jobId, RabbitMQConstants.EXCHANGE, routingKey);
 
         rabbitTemplate.convertAndSend(RabbitMQConstants.EXCHANGE, routingKey, jobId, setTraceIdByMessagePostProcessor,
@@ -115,20 +161,14 @@ public class JobQueueService {
             connection = connectionFactory.createConnection();
             channel = connection.createChannel(false);
             for (String queue : orderedQueueList) {
+                Map<String, String> savedMdc = MDC.getCopyOfContextMap();
                 try {
                     GetResponse getResponse = channel.basicGet(queue, false);
                     if (getResponse == null) {
                         continue;
                     }
                     String jobId = new String(getResponse.getBody(), StandardCharsets.UTF_8);
-                    String traceId = null;
-                    var headers = getResponse.getProps().getHeaders();
-                    if (headers != null) {
-                        Object traceIdHeader = headers.get(AppConstants.HEADER_TRACE_ID);
-                        if (traceIdHeader != null) {
-                            traceId = traceIdHeader.toString();
-                        }
-                    }
+                    String traceId = extractTraceIdFromHeaders(getResponse.getProps().getHeaders());
                     TracingUtils.setTraceId(traceId);
                     TracingUtils.setNewSpanId();
 
@@ -146,6 +186,7 @@ public class JobQueueService {
                     return message;
                 } catch (Exception e) {
                     log.error("Failed to consume from queue {}: {}", queue, e.getMessage(), e);
+                    restoreMdc(savedMdc);
                 }
             }
 
@@ -213,20 +254,22 @@ public class JobQueueService {
         log.info("Successfully moved job {} to dead letter queue", jobId);
     }
 
-    public List<String> consumeDeadLetters() {
+    public List<ConsumedDlqMessage> consumeDeadLetters() {
         log.info("Attempting to consume dead letter jobs");
-        List<String> jobIds = new ArrayList<>();
+        List<ConsumedDlqMessage> messages = new ArrayList<>();
         while (true) {
             Message message = rabbitTemplate.receive(RabbitMQConstants.QUEUE_DLQ);
             if (message == null) break;
-            jobIds.add(new String(message.getBody(), StandardCharsets.UTF_8));
+            String jobId = new String(message.getBody(), StandardCharsets.UTF_8);
+            String traceId = extractTraceIdFromHeaders(message.getMessageProperties().getHeaders());
+            messages.add(new ConsumedDlqMessage(jobId, traceId));
         }
-        if (!jobIds.isEmpty()) {
-            log.info("Consumed {} dead letter jobs: {}", jobIds.size(), jobIds);
+        if (!messages.isEmpty()) {
+            log.info("Consumed {} dead letter jobs: {}", messages.size(), messages);
         } else {
             log.info("No dead letter jobs available");
         }
-        return jobIds;
+        return messages;
     }
 
     public long getQueueMessageCount(String queueName) {
@@ -242,6 +285,20 @@ public class JobQueueService {
             case LOW -> RabbitMQConstants.QUEUE_LOW;
             default -> RabbitMQConstants.QUEUE_MEDIUM;
         };
+    }
+
+    private static String extractTraceIdFromHeaders(Map<String, Object> headers) {
+        if (headers == null) return null;
+        Object traceId = headers.get(AppConstants.HEADER_TRACE_ID);
+        return traceId != null ? traceId.toString() : null;
+    }
+
+    public static void restoreMdc(Map<String, String> savedMdc) {
+        if (savedMdc == null) {
+            MDC.clear();
+        } else {
+            MDC.setContextMap(savedMdc);
+        }
     }
 
     private void closeChannel(Channel channel) {
