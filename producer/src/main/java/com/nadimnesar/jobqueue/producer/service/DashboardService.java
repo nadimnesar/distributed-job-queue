@@ -1,6 +1,7 @@
 package com.nadimnesar.jobqueue.producer.service;
 
 import com.nadimnesar.jobqueue.common.constant.RabbitMQConstants;
+import com.nadimnesar.jobqueue.common.constant.enums.JobStatus;
 import com.nadimnesar.jobqueue.common.repository.JobRepository;
 import com.nadimnesar.jobqueue.common.repository.projection.JobStatusCountProjection;
 import com.nadimnesar.jobqueue.common.service.JobQueueService;
@@ -23,6 +24,10 @@ public class DashboardService {
 
     public CommonResponse getJobsSummary() {
         Map<String, Long> summary = new HashMap<>();
+
+        for (JobStatus status : JobStatus.values()) {
+            summary.put(status.name(), 0L);
+        }
 
         List<JobStatusCountProjection> results = jobRepository.countJobsGroupedByStatus();
         for (JobStatusCountProjection row : results) {
