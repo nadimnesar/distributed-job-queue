@@ -4,7 +4,6 @@ import com.nadimnesar.jobqueue.producer.dto.CommonResponse;
 import com.nadimnesar.jobqueue.producer.dto.request.JobRequest;
 import com.nadimnesar.jobqueue.producer.service.JobService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +40,7 @@ public class JobController {
     @GetMapping("/jobs")
     public ResponseEntity<CommonResponse> getJobs(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
+            @RequestParam(defaultValue = "20") @Min(1) int size) {
         log.info("Received get job request, pageNumber: {}, pageSize: {}", page, size);
         var response = jobService.getAllJobs(page, size);
         return ResponseEntity.status(response.getCode()).body(response);
@@ -59,7 +58,7 @@ public class JobController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
+            @RequestParam(defaultValue = "20") @Min(1) int size) {
         log.info("Received get jobs request with status: {}, type: {}, page: {}, size: {}", status, type, page, size);
 
         boolean hasStatus = status != null && !status.isBlank();

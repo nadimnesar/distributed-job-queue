@@ -4,142 +4,11 @@ info:
   title: Distributed Job Queue API
   version: 1.0.0
   description: |
-    ## Overview
+    REST API for a priority-based distributed job queue. Jobs are persisted to PostgreSQL, dispatched to RabbitMQ quorum queues, and processed by worker instances.
 
-    The Distributed Job Queue API provides a REST interface to the **producer
-    service** of a distributed, priority-based job processing system. Jobs are
-    submitted through this API, persisted in PostgreSQL, and dispatched to
-    RabbitMQ for asynchronous processing by worker instances.
-
-    ## Architecture
-
-    ```
-    ┌────────────┐      POST /api/v1/job/create      ┌──────────────┐
-    │  Producer   │ ──────────────────────────────────▶│  PostgreSQL   │
-    │  (this API) │                                    │  (jobs table)  │
-    └──────┬─────┘                                    └──────┬───────┘
-           │                                                 │
-           │  afterCommit()                                  │
-           ▼                                                 ▼
-    ┌──────────────┐   consume / publish   ┌──────────────────────┐
-    │   RabbitMQ    │◀────────────────────▶│     Worker Service    │
-    │  (quorum      │                      │  (separate deployable)│
-    │   queues)     │                      └──────────────────────┘
-    └──────────────┘
-    ```
-
-    - **Producer** (this service): Accepts job submissions, validates
-      dependencies via a DAG check, persists jobs, and publishes them to
-      RabbitMQ only **after the database transaction commits**
-      (`TransactionSynchronization.afterCommit`). This guarantees that
-      a job only enters the queue if it was successfully persisted.
-    - **Workers**: Independent deployables that consume from priority queues,
-      process jobs, and acknowledge or reject messages.
-    - **RabbitMQ**: Five quorum queues — HIGH, MEDIUM, LOW priority queues
-      (ordered by consumer priority), a RETRY queue (30-second TTL, consumed
-      and re-published to the original priority queue), and a DEAD_LETTER
-      queue (at-least-once strategy; messages that exceed `maxAttemptCount`
-      land here). Queues are configured with reject-publish overflow
-      strategy to prevent unbounded memory growth.
-    - **PostgreSQL**: Source of truth for job state. Workers update status
-      transitions in the database and the queue is treated as an
-      at-most-once/at-least-once delivery mechanism depending on the
-      failure mode.
-
-    ## Tech Stack
-
-    | Layer            | Technology                        |
-    |------------------|-----------------------------------|
-    | Runtime          | Java 21, Spring Boot 3            |
-    | Persistence      | PostgreSQL (via Spring Data JPA)  |
-    | Messaging        | RabbitMQ (quorum queues)          |
-    | API docs         | OpenAPI 3.0.3 (this file)         |
-    | Ingress          | NGINX Ingress on Kubernetes       |
-    | Observability    | Distributed tracing (traceId / spanId) |
-
-    ## Rate Limiting
-
-    Rate limiting is enforced at the **NGINX Ingress** layer, not within the
-    application itself. Limits are configured per-ingress annotation and apply
-    to the combined `/api/v1` path. The application does not return
-    `429 Too Many Requests`; if you receive one, it originated from the
-    ingress controller.
-
-    ## Distributed Tracing
-
-    Every response may include `traceId` and `spanId` fields in the
-    `CommonResponse` envelope. These are populated when a distributed tracing
-    context (e.g. W3C Trace Context) is present on the incoming request.
-    They are `null` when no tracing headers are provided. Use them to
-    correlate requests across the producer and worker services.
-
-    ## Error Envelope Philosophy
-
-    All responses — success and error — are wrapped in a `CommonResponse`
-    envelope with the structure:
-
-    ```json
-    {
-      "message": "Human-readable status message",
-      "code": 200,
-      "data": { "..." : "..." },
-      "traceId": "...",
-      "spanId": "..."
-    }
-    ```
-
-    On **error** responses, `data` is **always omitted**. The `message` field
-    contains a human-readable explanation suitable for logging and debugging
-    (but not for end-user display, as it may contain internal details). The
-    `code` field mirrors the HTTP status code.
-
-    The global `ExceptionHandler` maps exceptions as follows:
-
-    | Exception                              | HTTP Status | Message pattern                      |
-    |----------------------------------------|-------------|--------------------------------------|
-    | `MethodArgumentNotValidException`      | 400         | Field-level validation messages      |
-    | `ConstraintViolationException`         | 400         | `"Bad request"`                      |
-    | `HttpMessageNotReadableException`      | 400         | `"Malformed JSON request"`           |
-    | `IllegalArgumentException`            | 400         | Exception message (business rule)    |
-    | `IllegalStateException`               | 409         | Exception message (state conflict)   |
-    | Any other `Exception`                 | 500         | `"Internal server error"`            |
-
-    ## Job Lifecycle
-
-    Jobs follow a strict state machine:
-
-    ```
-    PENDING ──▶ PROCESSING ──▶ COMPLETED   (happy path)
-                  │
-                  ├──▶ FAILED ──▶ PENDING   (auto-retry, attemptCount < maxAttemptCount)
-                  │       │
-                  │       └──▶ DEAD          (attemptCount >= maxAttemptCount, manual revive required)
-                  │
-                  └──▶ CANCELED             (terminal; dependents are informed)
-    ```
-
-    - **PENDING**: Job created and waiting in the queue.
-    - **PROCESSING**: A worker has picked up the job.
-    - **COMPLETED**: Job finished successfully; `result` may contain output.
-    - **FAILED**: Job failed but retries remain; automatically re-queued.
-    - **DEAD**: All retries exhausted; requires manual revive via
-      `POST /api/v1/jobs/{id}/revive` or `POST /api/v1/jobs/revive`.
-    - **CANCELED**: Job was cancelled by the producer; terminal state.
-
-    ## DAG-Based Dependency System
-
-    Jobs can declare up to **100 dependencies** (UUIDs of other jobs). The
-    system enforces:
-
-    1. **Existence**: All dependency UUIDs must reference existing jobs.
-    2. **No terminal deps**: A job cannot depend on a CANCELED or DEAD job.
-    3. **Priority hierarchy**: A HIGH-priority job cannot depend on a
-       MEDIUM or LOW job. MEDIUM cannot depend on LOW. This prevents
-       lower-priority work from blocking higher-priority work indefinitely.
-    4. **DAG integrity**: Dependencies form a directed acyclic graph; cyclic
-       dependencies are rejected at submission time.
-
-    When all dependencies complete, the job becomes eligible for processing.
+    **Envelope**: All responses use `CommonResponse`. On errors, `data` is omitted.
+    **Tracing**: Responses may include `traceId`/`spanId` when W3C Trace Context headers are present.
+    **Rate limiting**: Enforced at the NGINX Ingress layer, not within the application.
   contact:
     name: nadimnesar
   license:
@@ -157,73 +26,19 @@ servers:
 
 tags:
   - name: Jobs
-    description: |
-      Core job lifecycle operations. This tag covers the full lifecycle of a
-      distributed job: creation with DAG-based dependency resolution, single
-      and bulk revival of dead jobs, cancellation, paginated listing,
-      filtered search, and single-job retrieval. Every mutation is
-      transactional — the job is persisted to PostgreSQL first, then
-      published to RabbitMQ only after the transaction commits, ensuring
-      at-least-once delivery semantics.
+    description: Job lifecycle — create, list, filter, cancel, revive.
   - name: Dashboard
-    description: |
-      Operational dashboard metrics. These read-only endpoints return
-      aggregated job counts by status (including a TOTAL rollup) and
-      real-time queue depths across all five RabbitMQ queues (HIGH, MEDIUM,
-      LOW priority, retry, and dead-letter). Useful for monitoring, alerting,
-      and capacity planning.
+    description: Operational metrics — job summary and queue depths.
 
 paths:
   /api/v1/job/create:
     post:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: createJob
-      summary: Submit a new job
+      summary: Create a new job
       description: |
-        ## Business Logic
-
-        1. **Validate** the `JobRequest` body:
-           - `priority` and `type` must be non-null valid enum values.
-           - `payload` must be non-blank, max 10,000 characters.
-           - `maxAttemptCount` if provided must be between 1 and 100; when
-             omitted the server default of **5** applies.
-           - `dependencies` (optional) must be a set of UUIDs, max 100
-             items; defaults to an empty set.
-
-        2. **Dependency resolution** (DAG validation):
-           - Every dependency UUID must reference an **existing** job.
-           - No dependency may be in `CANCELED` or `DEAD` status.
-           - **Priority hierarchy** is enforced: a job with priority P
-             cannot depend on a job with lower priority (i.e. P cannot be
-             higher ordinal than its deps). HIGH > MEDIUM > LOW.
-
-        3. **Persist** the job to PostgreSQL within a transaction. The job
-           starts with `status = PENDING` and `attemptCount = 1`.
-
-        4. **Publish** to RabbitMQ **after** the transaction commits
-           (`TransactionSynchronization.afterCommit`), ensuring the job
-           only enters the queue if it was successfully persisted.
-
-        ## State Transitions
-
-        ```
-        (none) -> PENDING
-        ```
-
-        ## Failure Modes
-
-        - Validation errors -> `400 Bad Request` with field-level messages.
-        - Malformed JSON -> `400 Bad Request` with message
-          `"Malformed JSON request"`.
-        - Dependency rule violations -> `400 Bad Request` with the specific
-          rule violated (e.g. `"Dependency on CANCELED job is not allowed"`).
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Transaction Boundaries
-
-        The entire create + publish flow runs in a single Spring transaction.
-        If the database write fails, no message is published to RabbitMQ.
+        Validates the request body (DAG dependency rules, priority hierarchy),
+        persists the job, and publishes to RabbitMQ after transaction commit.
       requestBody:
         required: true
         content:
@@ -231,23 +46,15 @@ paths:
             schema:
               $ref: '#/components/schemas/JobRequest'
             examples:
-              happyPath:
-                summary: Email job with no dependencies
-                description: >
-                  Creates a HIGH-priority email job with an explicit retry
-                  limit of 3 and no dependencies.
+              simple:
+                summary: Simple job, no dependencies
                 value:
                   priority: HIGH
                   type: EMAIL_SENDING
                   payload: Send welcome email to user 123
-                  dependencies: [ ]
                   maxAttemptCount: 3
               withDependencies:
-                summary: Job depending on two other jobs
-                description: >
-                  Creates a job that waits for two upstream jobs to complete
-                  before it can be processed. Both dependencies must exist,
-                  be non-terminal, and respect the priority hierarchy.
+                summary: Job with dependencies
                 value:
                   priority: HIGH
                   type: PAYMENT_SENDING
@@ -256,37 +63,12 @@ paths:
                     - 550e8400-e29b-41d4-a716-446655440000
                     - 6ba7b810-9dad-11d1-80b4-00c04fd430c8
                   maxAttemptCount: 5
-              maxDependencies:
-                summary: Job with maximum allowed dependencies (100)
-                description: >
-                  Demonstrates the upper bound of the dependency set. The
-                  `dependencies` array can contain at most 100 UUIDs.
-                value:
-                  priority: LOW
-                  type: EMAIL_SENDING
-                  payload: Batch notification job
-                  dependencies:
-                    - 00000000-0000-0000-0000-000000000001
-                    - 00000000-0000-0000-0000-000000000002
-                    - 00000000-0000-0000-0000-000000000003
-                  maxAttemptCount: 10
-              minimalPayload:
-                summary: Minimal job (optional fields omitted)
-                description: >
-                  All optional fields are omitted: `dependencies` defaults
-                  to an empty array and `maxAttemptCount` defaults to the
-                  server default (5).
+              minimal:
+                summary: Minimal payload (optional fields omitted)
                 value:
                   priority: MEDIUM
                   type: EMAIL_SENDING
                   payload: Send notification
-              emptyDependencies:
-                summary: Explicit empty dependency set
-                value:
-                  priority: HIGH
-                  type: EMAIL_SENDING
-                  payload: Standalone job
-                  dependencies: [ ]
       responses:
         '201':
           description: Job created successfully.
@@ -311,134 +93,42 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/jobs/{id}/cancel:
-    post:
-      tags:
-        - Jobs
-      operationId: cancelJob
-      summary: Cancel a job by id
-      description: |
-        ## Business Logic
-
-        Cancels a job that is not yet in a terminal or processing state.
-
-        1. **Lookup** the job by UUID. If not found, return `404`.
-        2. **State check**:
-           - If status is `CANCELED`, `COMPLETED`, or `DEAD`, return
-             `400 Bad Request` — the job is already in a terminal state.
-           - If status is `PROCESSING`, return `409 Conflict` — the job is
-             actively being processed by a worker and cannot be cancelled.
-           - If status is `PENDING` or `FAILED`, proceed with cancellation.
-        3. **Mark** the job as `CANCELED` in the database.
-        4. **Inform dependents**: Any jobs that depend on this job are also
-           affected (they will not be able to transition to PROCESSING until
-           their dependency graph resolves).
-
-        ## State Transitions
-
-        ```
-        PENDING  -> CANCELED
-        FAILED   -> CANCELED
-        ```
-
-        ## Failure Modes
-
-        - Job not found -> `404 Not Found` with message `"No job found with given id."`.
-        - Already CANCELED/COMPLETED/DEAD -> `400 Bad Request`.
-        - Currently PROCESSING -> `409 Conflict`.
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Retry Semantics
-
-        This is a non-idempotent operation in the sense that cancelling an
-        already-cancelled job is rejected. However, the initial cancellation
-        request is idempotent — retrying a successful cancellation returns
-        `400` because the job is already CANCELED.
-      parameters:
-        - $ref: '#/components/parameters/JobIdPath'
-      responses:
-        '202':
-          description: Job cancelled successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommonResponse'
-              example:
-                message: Job is cancelled successfully
-                code: 202
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
   /api/v1/jobs:
     get:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: getJobs
-      summary: List jobs (paginated)
-      description: |
-        ## Business Logic
-
-        Returns a page of all jobs with newest-first ordering aside from
-        pagination. This endpoint provides an unfiltered view of every job
-        in the system.
-
-        ## Pagination
-
-        - `page` is **zero-indexed** (page 0 returns the first page).
-        - `size` must be between **1 and 200** inclusive.
-        - Both `page` and `size` are **required** query parameters.
-        - On constraint violation (page < 0 or size out of range),
-          returns `400 Bad Request`.
-
-        ## Failure Modes
-
-        - Constraint violation (page < 0 or size out of range) ->
-          `400 Bad Request`.
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Response Structure
-
-        The `data` field contains an array of `JobResponse` objects. Each
-        job includes its `id`, `priority`, `type`, `status`, `dependents`,
-        `dependencies`, `result` (nullable), `attemptCount` (nullable),
-        `maxAttemptCount` (nullable), `startedAt` (nullable), and
-        `completedAt` (nullable). Null fields are omitted from the JSON
-        response due to `@JsonInclude(NON_NULL)`.
+      summary: List all jobs (paginated)
+      description: Returns a page of all jobs, newest first. Both `page` and `size` are optional with defaults.
       parameters:
         - name: page
           in: query
-          required: true
-          description: Zero-indexed page number. Must be >= 0.
+          required: false
+          description: Zero-indexed page number. Defaults to 0.
           schema:
             type: integer
             minimum: 0
+            default: 0
           examples:
-            firstPage:
+            first:
               summary: First page
               value: 0
-            secondPage:
+            second:
               summary: Second page
               value: 1
         - name: size
           in: query
-          required: true
-          description: Number of jobs per page. Must be between 1 and 200.
+          required: false
+          description: Number of jobs per page. Defaults to 20, must be >= 1.
           schema:
             type: integer
             minimum: 1
-            maximum: 200
+            default: 20
           examples:
             default:
               summary: Default page size (20)
               value: 20
             large:
-              summary: Large page (200)
+              summary: Large page
               value: 200
       responses:
         '200':
@@ -477,28 +167,10 @@ paths:
 
   /api/v1/jobs/{id}:
     get:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: getJobById
-      summary: Get a single job by id
-      description: |
-        ## Business Logic
-
-        Returns the full representation of a single job identified by its
-        UUID. The response includes all fields: `id`, `priority`, `type`,
-        `status`, `dependents`, `dependencies`, `result`, `attemptCount`,
-        `maxAttemptCount`, `startedAt`, and `completedAt`.
-
-        Fields that are null (e.g. `result` for a PENDING job, or
-        `startedAt`/`completedAt` before processing) are omitted from the
-        JSON response due to `@JsonInclude(NON_NULL)`.
-
-        ## Failure Modes
-
-        - Job not found -> `404 Not Found` with message
-          `"No job found with given id."`.
-        - Invalid UUID format -> `400 Bad Request`.
-        - Unexpected errors -> `500 Internal Server Error`.
+      summary: Get a job by ID
+      description: Returns the full job representation. Null fields are omitted.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
       responses:
@@ -531,77 +203,41 @@ paths:
 
   /api/v1/jobs/filter:
     get:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: filterJobs
       summary: Filter jobs by status and/or type
       description: |
-        ## Business Logic
-
-        Returns a page of jobs filtered by `status` and/or `type`. At least
-        one of `status` or `type` **must** be provided, otherwise `400` is
-        returned with message
-        `"At least one of 'status' or 'type' must be provided"`.
-
-        - `status` must be a valid `JobStatus` value (case-insensitive;
-          values are upper-cased before lookup).
-        - `type` must be a valid `JobType` value (case-insensitive).
-        - An invalid enum value results in `400 Bad Request`.
-
-        When both `status` and `type` are provided, jobs matching **both**
-        filters are returned (logical AND).
-
-        ## Pagination
-
-        - `page` defaults to **0** (first page, zero-indexed).
-        - `size` defaults to **20** and must be between 1 and 200.
-        - Both `page` and `size` are optional; omitting them uses defaults.
-
-        ## Failure Modes
-
-        - Neither `status` nor `type` provided -> `400 Bad Request`.
-        - Invalid enum value -> `400 Bad Request`.
-        - Constraint violation -> `400 Bad Request`.
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Use Cases
-
-        - Get all pending jobs: `?status=PENDING`
-        - Get all email jobs: `?type=EMAIL_SENDING`
-        - Get all failed payment jobs: `?status=FAILED&type=PAYMENT_SENDING`
+        At least one of `status` or `type` must be provided. When both are given,
+        results match both (logical AND). Values are case-insensitive.
       parameters:
         - name: status
           in: query
           required: false
-          description: >
-            Job status to filter by (case-insensitive). Valid values:
-            PENDING, PROCESSING, CANCELED, COMPLETED, FAILED, DEAD.
+          description: "Filter by status: PENDING, PROCESSING, CANCELED, COMPLETED, FAILED, DEAD."
           schema:
             $ref: '#/components/schemas/JobStatus'
           examples:
             pending:
-              summary: Filter pending jobs
+              summary: Pending jobs
               value: PENDING
             failed:
-              summary: Filter failed jobs
+              summary: Failed jobs
               value: FAILED
             dead:
-              summary: Filter dead jobs
+              summary: Dead jobs
               value: DEAD
         - name: type
           in: query
           required: false
-          description: >
-            Job type to filter by (case-insensitive). Valid values:
-            EMAIL_SENDING, PAYMENT_SENDING.
+          description: "Filter by type: EMAIL_SENDING, PAYMENT_SENDING."
           schema:
             $ref: '#/components/schemas/JobType'
           examples:
             email:
-              summary: Filter email jobs
+              summary: Email jobs
               value: EMAIL_SENDING
             payment:
-              summary: Filter payment jobs
+              summary: Payment jobs
               value: PAYMENT_SENDING
         - name: page
           in: query
@@ -614,15 +250,14 @@ paths:
         - name: size
           in: query
           required: false
-          description: Number of jobs per page. Defaults to 20. Must be between 1 and 200.
+          description: Page size. Defaults to 20, must be >= 1.
           schema:
             type: integer
             minimum: 1
-            maximum: 200
             default: 20
       responses:
         '200':
-          description: A page of jobs matching the filters.
+          description: Filtered jobs.
           content:
             application/json:
               schema:
@@ -644,48 +279,41 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/jobs/{id}/cancel:
+    post:
+      tags: [ Jobs ]
+      operationId: cancelJob
+      summary: Cancel a job
+      description: |
+        Cancels a PENDING or FAILED job. Returns 409 if the job is PROCESSING.
+        Terminal states (CANCELED, COMPLETED, DEAD) return 400.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '202':
+          description: Job cancelled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonResponse'
+              example:
+                message: Job is cancelled successfully
+                code: 202
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/jobs/{id}/revive:
     post:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: reviveDeadJobById
-      summary: Revive a single dead job by id
-      description: |
-        ## Business Logic
-
-        Resets a DEAD job back to PENDING and re-publishes it to the
-        appropriate priority queue after the transaction commits.
-
-        1. **Lookup** the job by UUID. If not found, return `404`.
-        2. **State check**:
-           - If status is not `DEAD`, return `400 Bad Request`. Only
-             DEAD jobs can be revived. Jobs in FAILED state are retried
-             automatically and cannot be manually revived.
-        3. **Reset** the job status to `PENDING` and reset `attemptCount`
-           to **1** (the initial attempt count).
-        4. **Publish** to the original priority queue after transaction
-           commit.
-
-        ## State Transitions
-
-        ```
-        DEAD -> PENDING
-        ```
-
-        ## Failure Modes
-
-        - Job not found -> `404 Not Found` with message
-          `"No job found with given id."`.
-        - Job not DEAD -> `400 Bad Request` (message varies by current
-          status, e.g. `"Job is not in DEAD state"`).
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Retry Semantics
-
-        Reviving a job that is already PENDING is rejected because the
-        job is not DEAD. The revive operation is idempotent only for
-        DEAD jobs — reviving the same DEAD job twice returns `400` on
-        the second attempt (status is now PENDING).
+      summary: Revive a single dead job
+      description: Resets a DEAD job to PENDING with attemptCount=1 and re-publishes to its priority queue.
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
       responses:
@@ -708,47 +336,13 @@ paths:
 
   /api/v1/jobs/revive:
     post:
-      tags:
-        - Jobs
+      tags: [ Jobs ]
       operationId: reviveAllDeadJobs
       summary: Revive all dead jobs
       description: |
-        ## Business Logic
-
-        Scans for all jobs in `DEAD` status and revives them back to
-        `PENDING`, re-publishing each to its original priority queue.
-
-        1. **Query** the database for all jobs with `status = DEAD`.
-        2. **If no dead jobs found**, return `404 Not Found` with message
-          `"No dead jobs found to revive"`.
-        3. **For each dead job**:
-           - Reset status to `PENDING`.
-           - Reset `attemptCount` to **1**.
-           - Publish to the original priority queue after transaction commit.
-        4. **Return** a list of revived job UUIDs.
-
-        ## State Transitions
-
-        ```
-        DEAD (all) -> PENDING
-        ```
-
-        ## Failure Modes
-
-        - No dead jobs -> `404 Not Found` with message
-          `"No dead jobs found to revive"`.
-        - Unexpected errors -> `500 Internal Server Error`.
-
-        ## Transaction Boundaries
-
-        All revivals happen within a single transaction. If any individual
-        revival fails, the entire batch is rolled back.
-
-        ## Retry Semantics
-
-        This operation is safe to retry. If all dead jobs were already
-        revived by a prior call, the next call returns `404` because
-        there are no more DEAD jobs.
+        Finds all DEAD jobs, resets each to PENDING with attemptCount=1, and
+        re-publishes to their original priority queues. Returns 404 if no
+        dead jobs exist.
       responses:
         '200':
           description: Dead jobs revived successfully.
@@ -769,41 +363,10 @@ paths:
 
   /api/v1/dashboard/jobs/summary:
     get:
-      tags:
-        - Dashboard
+      tags: [ Dashboard ]
       operationId: getJobsSummary
-      summary: Get job counts grouped by status
-      description: |
-        ## Business Logic
-
-        Queries the database for the count of jobs in each `JobStatus`
-        value and returns them as a map. The response always includes:
-
-        - **One entry per status**: `PENDING`, `PROCESSING`, `CANCELED`,
-          `COMPLETED`, `FAILED`, `DEAD` — each with an integer count
-          (may be **0** if no jobs exist in that status).
-        - **`TOTAL`**: Always present; the sum of all status counts.
-
-        This endpoint is read-only and has no query parameters. It performs
-        a lightweight aggregation query and is suitable for frequent polling.
-
-        ## Response Structure
-
-        ```json
-        {
-          "PENDING": 12,
-          "PROCESSING": 3,
-          "CANCELED": 1,
-          "COMPLETED": 45,
-          "FAILED": 2,
-          "DEAD": 1,
-          "TOTAL": 64
-        }
-        ```
-
-        The `TOTAL` key is **always present** regardless of whether any
-        jobs exist. Individual status counts default to **0** when no jobs
-        are in that state.
+      summary: Job counts by status
+      description: Returns counts for each status (PENDING, PROCESSING, CANCELED, COMPLETED, FAILED, DEAD) plus a TOTAL. Read-only, suitable for frequent polling.
       responses:
         '200':
           description: Job status summary.
@@ -827,47 +390,13 @@ paths:
 
   /api/v1/dashboard/queue-metrics:
     get:
-      tags:
-        - Dashboard
+      tags: [ Dashboard ]
       operationId: getQueueMetrics
-      summary: Get queue message counts
+      summary: Queue message counts
       description: |
-        ## Business Logic
-
-        Returns the current message count for each managed RabbitMQ queue.
-        The `data` field contains a `queues` object with the following keys:
-
-        - **`HIGH_PRIORITY_QUEUE_LENGTH`**: Messages in the HIGH priority
-          queue. Consumers configured with highest priority consume from
-          this queue first.
-        - **`MEDIUM_PRIORITY_QUEUE_LENGTH`**: Messages in the MEDIUM
-          priority queue.
-        - **`LOW_PRIORITY_QUEUE_LENGTH`**: Messages in the LOW priority
-          queue. Consumed only when HIGH and MEDIUM queues are empty.
-        - **`RETRY_QUEUE_LENGTH`**: Messages in the RETRY queue. This
-          queue has a **30-second TTL** — messages are re-published to
-          their original priority queue after the TTL expires.
-        - **`DEAD_LETTER_QUEUE_LENGTH`**: Messages in the DEAD_LETTER
-          queue. These are jobs that exhausted all retry attempts
-          (`maxAttemptCount`). Use `POST /api/v1/jobs/revive` to move
-          them back to PENDING.
-
-        All queues are **quorum queues** with reject-publish overflow
-        strategy to prevent unbounded memory growth.
-
-        ## Response Structure
-
-        ```json
-        {
-          "queues": {
-            "HIGH_PRIORITY_QUEUE_LENGTH": 4,
-            "MEDIUM_PRIORITY_QUEUE_LENGTH": 7,
-            "LOW_PRIORITY_QUEUE_LENGTH": 15,
-            "RETRY_QUEUE_LENGTH": 2,
-            "DEAD_LETTER_QUEUE_LENGTH": 1
-          }
-        }
-        ```
+        Current message count for each RabbitMQ queue: HIGH/MEDIUM/LOW priority,
+        RETRY (30s TTL), and DEAD_LETTER. All queues are quorum queues with
+        reject-publish overflow.
       responses:
         '200':
           description: Queue metrics.
@@ -894,9 +423,7 @@ components:
       name: id
       in: path
       required: true
-      description: >
-        UUID v4 of the target job. Must be a valid UUID in the format
-        `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx` where y is 8, 9, a, or b.
+      description: UUID v4 of the target job.
       schema:
         type: string
         format: uuid
@@ -904,10 +431,7 @@ components:
 
   responses:
     BadRequest:
-      description: |
-        Bad request. The request was malformed, failed validation, or violated a
-        business rule. `data` is always omitted. The `message` field contains
-        a human-readable explanation of the specific error.
+      description: Bad request — validation error, malformed JSON, or business rule violation.
       content:
         application/json:
           schema:
@@ -915,64 +439,21 @@ components:
           examples:
             validation:
               summary: Field-level validation error
-              description: >
-                Returned by `MethodArgumentNotValidException` when one or more
-                request body fields fail Bean Validation. The message includes
-                the field name and the constraint violated.
               value:
                 message: "Validation error: payload: Payload cannot be blank"
                 code: 400
-            validationMultiple:
-              summary: Multiple validation errors
-              description: >
-                Returned when multiple fields fail validation simultaneously.
-              value:
-                message: "Validation error: priority: must not be blank, type: must not be blank"
-                code: 400
             malformedJson:
               summary: Malformed JSON
-              description: >
-                Returned by `HttpMessageNotReadableException` when the request
-                body is not valid JSON or is truncated.
               value:
                 message: Malformed JSON request
                 code: 400
-            constraint:
-              summary: Constraint violation
-              description: >
-                Returned by `ConstraintViolationException` when a method-level
-                constraint is violated (e.g. path parameter format).
-              value:
-                message: Bad request
-                code: 400
             businessRule:
-              summary: Business rule violation (filter endpoint)
-              description: >
-                Returned when neither `status` nor `type` is provided to the
-                filter endpoint.
+              summary: Business rule violation
               value:
                 message: At least one of 'status' or 'type' must be provided
                 code: 400
-            invalidStatus:
-              summary: Invalid job status for cancel
-              description: >
-                Returned when attempting to cancel a job that is already in a
-                terminal state (CANCELED, COMPLETED, or DEAD).
-              value:
-                message: Cannot cancel job in current state
-                code: 400
-            notDead:
-              summary: Job not in DEAD state for revive
-              description: >
-                Returned when attempting to revive a job that is not in the
-                DEAD state.
-              value:
-                message: Job is not in DEAD state
-                code: 400
     NotFound:
-      description: |
-        Not found. The referenced resource does not exist. `data` is always
-        omitted. The `message` field identifies which resource was not found.
+      description: Resource not found.
       content:
         application/json:
           schema:
@@ -980,44 +461,25 @@ components:
           examples:
             jobNotFound:
               summary: Job not found
-              description: >
-                Returned when the UUID path parameter does not match any
-                job in the database.
               value:
                 message: No job found with given id.
                 code: 404
             noDeadJobs:
               summary: No dead jobs to revive
-              description: >
-                Returned by the bulk revive endpoint when there are no jobs
-                in DEAD status.
               value:
                 message: No dead jobs found to revive
                 code: 404
     Conflict:
-      description: |
-        Conflict. The request cannot be applied to the resource in its current
-        state. `data` is always omitted. This is returned when a job is in
-        PROCESSING state and cannot be cancelled.
+      description: Conflict — job is currently PROCESSING and cannot be cancelled.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/CommonResponseError'
-          examples:
-            processingConflict:
-              summary: Job is currently being processed
-              description: >
-                Returned when attempting to cancel a job that is currently
-                in PROCESSING status. The job is actively being handled by
-                a worker and cannot be cancelled.
-              value:
-                message: Conflict
-                code: 409
+          example:
+            message: Conflict
+            code: 409
     InternalError:
-      description: |
-        Internal server error. An unexpected error occurred. `data` is always
-        omitted. This typically indicates a bug or infrastructure failure.
-        Contact the development team with the `traceId` for investigation.
+      description: Unexpected server error.
       content:
         application/json:
           schema:
@@ -1030,189 +492,74 @@ components:
     JobPriority:
       title: JobPriority
       type: string
-      description: |
-        Priority level of a job. Higher priority jobs are processed first.
-        The priority hierarchy is enforced for dependencies: a job cannot
-        depend on a lower-priority job (HIGH > MEDIUM > LOW).
-
-        - **HIGH**: Processed first. Consumed from the HIGH priority queue.
-        - **MEDIUM**: Processed after HIGH. Consumed from the MEDIUM queue.
-        - **LOW**: Processed last. Consumed from the LOW queue.
-      enum:
-        - HIGH
-        - MEDIUM
-        - LOW
+      description: "Priority level. HIGH > MEDIUM > LOW. Enforced for dependencies."
+      enum: [ HIGH, MEDIUM, LOW ]
       example: HIGH
 
     JobType:
       title: JobType
       type: string
-      description: |
-        The kind of work a job represents. Each type corresponds to a
-        specific business operation that workers know how to execute.
-
-        - **EMAIL_SENDING**: Sending an email notification.
-        - **PAYMENT_SENDING**: Processing a payment or refund.
-      enum:
-        - EMAIL_SENDING
-        - PAYMENT_SENDING
+      description: "Job type. Each type maps to a specific worker handler."
+      enum: [ EMAIL_SENDING, PAYMENT_SENDING ]
       example: EMAIL_SENDING
 
     JobStatus:
       title: JobStatus
       type: string
       description: |
-        Lifecycle status of a job. The complete state machine is:
-
-        ```
-        PENDING -> PROCESSING -> COMPLETED   (happy path)
-                      |
-                      +-> FAILED -> PENDING  (auto-retry while attempts remain)
-                      |       |
-                      |       +-> DEAD       (all retries exhausted)
-                      |
-                      +-> CANCELED           (terminal)
-        ```
-
-        - **PENDING**: Job created and waiting in the queue for a worker.
-        - **PROCESSING**: A worker has picked up the job and is executing it.
-        - **CANCELED**: Job was cancelled by the producer; terminal state.
-        - **COMPLETED**: Job finished successfully; `result` may contain output.
-        - **FAILED**: Job failed but retries remain; automatically re-queued.
-        - **DEAD**: All retries exhausted; requires manual revive.
-      enum:
-        - PENDING
-        - PROCESSING
-        - CANCELED
-        - COMPLETED
-        - FAILED
-        - DEAD
+        Lifecycle status. State machine:
+        `PENDING -> PROCESSING -> COMPLETED | FAILED -> PENDING (retry) -> DEAD | CANCELED`
+      enum: [ PENDING, PROCESSING, CANCELED, COMPLETED, FAILED, DEAD ]
       example: PENDING
 
     JobRequest:
       title: JobRequest
       type: object
       description: |
-        Request body for creating a new job. All fields are validated
-        according to Bean Validation constraints and business rules.
-
-        **Field constraints:**
-        - `priority` (required): Must be a valid `JobPriority` enum value.
-          Not nullable.
-        - `type` (required): Must be a valid `JobType` enum value.
-          Not nullable.
-        - `payload` (required): Must not be blank (`@NotBlank`), maximum
-          10,000 characters (`@Size(max = 10000)`). Non-empty string.
-        - `dependencies` (optional): Array of UUIDs, maximum 100 items
-          (`@Size(max = 100)`). Defaults to an empty array. Each UUID
-          must reference an existing, non-terminal job, and must respect
-          the priority hierarchy.
-        - `maxAttemptCount` (optional): Integer between 1 and 100
-          (`@Min(1)`, `@Max(100)`). Nullable. When omitted, the server
-          default of **5** applies (`AppConstants.DEFAULT_MAXIMUM_ATTEMPT_COUNT`).
-
-        **Business rules:**
-        - Dependencies are validated for existence, non-terminal status,
-          and priority hierarchy at submission time.
-        - A job starts with `attemptCount = 1` and `status = PENDING`.
-      required:
-        - priority
-        - type
-        - payload
+        Create job request. `dependencies` and `maxAttemptCount` are optional.
+        Dependencies are validated for existence, non-terminal status, and priority hierarchy.
+        A job starts with status=PENDING and attemptCount=1.
+      required: [ priority, type, payload ]
       properties:
         priority:
           $ref: '#/components/schemas/JobPriority'
         type:
           $ref: '#/components/schemas/JobType'
+        payload:
+          title: Payload
+          type: string
+          description: Job payload. Non-blank, max 10,000 characters.
+          minLength: 1
+          maxLength: 10000
+          example: Send welcome email to user 123
         dependencies:
           title: Dependencies
           type: array
-          description: |
-            UUIDs of jobs that must complete before this job can be processed.
-            A maximum of **100 dependencies** is allowed. Defaults to an
-            empty array when omitted.
-
-            **Validation rules:**
-            - All UUIDs must reference existing jobs.
-            - No dependency may be in `CANCELED` or `DEAD` status.
-            - A HIGH-priority job cannot depend on MEDIUM or LOW jobs.
-            - A MEDIUM-priority job cannot depend on LOW jobs.
-            - Dependencies must form a DAG (no cycles).
-          maxItems: 100
-          default: [ ]
+          description: UUIDs of jobs that must complete first. No upper limit. Defaults to [].
           items:
             type: string
             format: uuid
           example:
             - 550e8400-e29b-41d4-a716-446655440000
             - 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-        payload:
-          title: Payload
-          type: string
-          description: |
-            Opaque payload for the job. Must not be blank (`@NotBlank`).
-            Maximum 10,000 characters (`@Size(max = 10000)`). The payload
-            is passed to the worker for processing and its format is
-            determined by the job type.
-          minLength: 1
-          maxLength: 10000
-          example: Send welcome email to user 123
         maxAttemptCount:
           title: MaxAttemptCount
           type: integer
-          description: |
-            Maximum number of processing attempts before the job is moved to
-            DEAD status. Optional; when omitted the server default of **5**
-            applies (`AppConstants.DEFAULT_MAXIMUM_ATTEMPT_COUNT`).
-
-            - Minimum: **1** (`@Min(1)`) — a job must be attempted at least once.
-            - Maximum: **100** (`@Max(100)`).
-            - Nullable: when `null`, the server default (5) is used.
-
-            When `attemptCount` reaches `maxAttemptCount`, the job transitions
-            from FAILED to DEAD and requires manual revive.
+          description: Max retries before DEAD. Default 5, min 1, no upper limit.
           minimum: 1
-          maximum: 100
           nullable: true
           example: 3
 
     JobResponse:
       title: JobResponse
       type: object
-      description: |
-        Representation of a job returned by the API. Uses
-        `@JsonInclude(NON_NULL)` — null fields are **omitted** from the
-        serialized JSON response (not included as `null`).
-
-        **Fields:**
-        - `id`: UUID v4, unique identifier.
-        - `priority`: `JobPriority` enum.
-        - `type`: `JobType` enum.
-        - `status`: `JobStatus` — current lifecycle state.
-        - `dependents`: Array of UUIDs of jobs that depend on this job.
-        - `dependencies`: Array of UUIDs this job depends on.
-        - `result`: Nullable string — populated when the job completes
-          successfully. Omitted for non-COMPLETED jobs.
-        - `attemptCount`: Nullable integer — number of processing attempts
-          made so far. Starts at 0, incremented on each attempt. Omitted
-          for newly created jobs before first processing.
-        - `maxAttemptCount`: Nullable integer — maximum attempts before DEAD.
-          Omitted when the server default (5) applies and was not explicitly
-          set.
-        - `startedAt`: Nullable ISO-8601 datetime — when processing started.
-          Omitted before first processing attempt.
-        - `completedAt`: Nullable ISO-8601 datetime — when processing
-          completed (success or final failure). Omitted while the job is
-          still processing or pending.
-
-        **Note:** The `BaseEntity` fields `createdAt` and `updatedAt` are
-        **not** exposed in the API response.
+      description: Job representation. Null fields are omitted (NON_NULL serialization).
       properties:
         id:
-          title: Job ID
+          title: ID
           type: string
           format: uuid
-          description: Unique identifier of the job (UUID v4).
+          description: Unique identifier (UUID v4).
         priority:
           $ref: '#/components/schemas/JobPriority'
         type:
@@ -1222,85 +569,49 @@ components:
         dependents:
           title: Dependents
           type: array
-          description: >
-            UUIDs of jobs that depend on this job. These jobs cannot be
-            processed until this job completes. Empty array if no jobs
-            depend on this one.
+          description: UUIDs of jobs that depend on this job.
           items:
             type: string
             format: uuid
         dependencies:
           title: Dependencies
           type: array
-          description: >
-            UUIDs of jobs this job depends on. This job cannot be processed
-            until all dependencies complete. Empty array if no dependencies.
+          description: UUIDs of jobs this job depends on.
           items:
             type: string
             format: uuid
         result:
           title: Result
           type: string
-          description: >
-            Result of the job once completed. Contains output produced by
-            the worker. Only populated for COMPLETED jobs. Null (and
-            therefore omitted) for all other statuses.
+          description: Output from the worker. Only for COMPLETED jobs.
           nullable: true
         attemptCount:
-          title: AttemptCount
+          title: Attempt Count
           type: integer
-          description: >
-            Number of processing attempts made so far. Starts at 0, incremented
-            each time a worker picks up the job. When `attemptCount` reaches
-            `maxAttemptCount`, the job transitions to DEAD. Null (omitted)
-            for newly created jobs.
+          description: Number of processing attempts so far.
           nullable: true
         maxAttemptCount:
-          title: MaxAttemptCount
+          title: Max Attempt Count
           type: integer
-          description: >
-            Maximum number of attempts before the job is moved to DEAD.
-            Server default is 5 (`AppConstants.DEFAULT_MAXIMUM_ATTEMPT_COUNT`).
-            Null (omitted) when not explicitly set by the client.
+          description: Maximum attempts before DEAD.
           nullable: true
         startedAt:
-          title: StartedAt
+          title: Started At
           type: string
           format: date-time
-          description: >
-            ISO-8601 timestamp when processing started. Populated when a
-            worker picks up the job. Null (omitted) before first processing.
+          description: When processing started (ISO-8601).
           nullable: true
         completedAt:
-          title: CompletedAt
+          title: Completed At
           type: string
           format: date-time
-          description: >
-            ISO-8601 timestamp when processing completed (success or final
-            failure). Populated when the job reaches COMPLETED or DEAD
-            status. Null (omitted) while the job is still processing.
+          description: When processing completed (ISO-8601).
           nullable: true
 
     CommonResponse:
       title: CommonResponse
       type: object
-      description: |
-        Envelope wrapping every API response (success and error). On error
-        responses `data` is always omitted. `traceId` and `spanId` are present
-        only when a distributed tracing context (e.g. W3C Trace Context) is
-        available on the incoming request.
-
-        **Fields:**
-        - `message`: Human-readable status message. On success, typically
-          `"Operation Successful."` or `"Job is created successfully."`.
-          On error, contains the specific error description.
-        - `code`: HTTP status code mirrored in the body (e.g. 200, 201, 400).
-        - `data`: The response payload. Type varies by endpoint. Omitted
-          on all error responses.
-        - `traceId`: Distributed trace identifier. Null when no tracing
-          headers are provided.
-        - `spanId`: Span identifier within the trace. Null when no tracing
-          headers are provided.
+      description: Standard response envelope. On errors, `data` is omitted.
       properties:
         message:
           title: Message
@@ -1314,39 +625,27 @@ components:
           default: 200
         data:
           title: Data
-          description: >
-            The response payload. Type depends on the endpoint. Omitted on
-            error responses.
+          description: Response payload. Type varies by endpoint. Omitted on errors.
         traceId:
-          title: TraceId
+          title: Trace ID
           type: string
-          description: >
-            Distributed trace identifier, when available. Populated from
-            incoming W3C Trace Context headers. Null when no tracing
-            context is present.
+          description: Distributed trace identifier (nullable).
           nullable: true
         spanId:
-          title: SpanId
+          title: Span ID
           type: string
-          description: >
-            Span identifier within the trace, when available. Null when no
-            tracing context is present.
+          description: Span identifier within the trace (nullable).
           nullable: true
 
     CommonResponseError:
       title: CommonResponseError
-      description: |
-        Error envelope. Identical to `CommonResponse` but `data` is always
-        omitted on error responses. The `message` field contains a
-        human-readable explanation of the error.
+      description: Error envelope. `data` is always omitted.
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
 
     CommonResponseJobResponse:
       title: CommonResponseJobResponse
-      description: >
-        CommonResponse whose `data` is a single `JobResponse` object.
-        Returned by create and get-by-id endpoints.
+      description: CommonResponse with `data` as a single JobResponse.
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object
@@ -1356,9 +655,7 @@ components:
 
     CommonResponseJobResponseList:
       title: CommonResponseJobResponseList
-      description: >
-        CommonResponse whose `data` is an array of `JobResponse` objects.
-        Returned by list and filter endpoints.
+      description: CommonResponse with `data` as an array of JobResponse.
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object
@@ -1370,10 +667,7 @@ components:
 
     CommonResponseString:
       title: CommonResponseString
-      description: >
-        CommonResponse whose `data` is a single string. Used by the
-        single-job revive endpoint where `data` contains the revived
-        job's UUID as a string.
+      description: CommonResponse with `data` as a string (e.g. revived job UUID).
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object
@@ -1383,10 +677,7 @@ components:
 
     CommonResponseStringList:
       title: CommonResponseStringList
-      description: >
-        CommonResponse whose `data` is an array of strings. Used by the
-        bulk revive endpoint where `data` contains a list of revived
-        job UUIDs.
+      description: CommonResponse with `data` as an array of strings (e.g. revived job UUIDs).
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object
@@ -1399,60 +690,26 @@ components:
     JobsSummary:
       title: JobsSummary
       type: object
-      description: |
-        Counts of jobs grouped by status, including a TOTAL entry. Queried
-        from the database as an aggregation.
-
-        **Key behaviors:**
-        - `TOTAL` is **always present** in the response, even when no jobs
-          exist (it will be 0).
-        - Individual status counts default to **0** when no jobs are in
-          that status.
-        - The sum of all status counts equals `TOTAL`.
-
-        **Fields:**
-        - `PENDING`: Jobs waiting in the queue.
-        - `PROCESSING`: Jobs actively being handled by workers.
-        - `CANCELED`: Jobs that were cancelled (terminal).
-        - `COMPLETED`: Jobs that finished successfully.
-        - `FAILED`: Jobs that failed but may still be retried.
-        - `DEAD`: Jobs that exhausted all retries (require manual revive).
-        - `TOTAL`: Sum of all status counts.
+      description: Job counts per status plus TOTAL.
       properties:
         PENDING:
-          title: PendingCount
           type: integer
-          description: Number of jobs in PENDING status.
         PROCESSING:
-          title: ProcessingCount
           type: integer
-          description: Number of jobs in PROCESSING status.
         CANCELED:
-          title: CanceledCount
           type: integer
-          description: Number of jobs in CANCELED status.
         COMPLETED:
-          title: CompletedCount
           type: integer
-          description: Number of jobs in COMPLETED status.
         FAILED:
-          title: FailedCount
           type: integer
-          description: Number of jobs in FAILED status.
         DEAD:
-          title: DeadCount
           type: integer
-          description: Number of jobs in DEAD status.
         TOTAL:
-          title: TotalCount
           type: integer
-          description: Total number of jobs across all statuses. Always present.
 
     CommonResponseJobsSummary:
       title: CommonResponseJobsSummary
-      description: >
-        CommonResponse whose `data` is a `JobsSummary` object. Returned by
-        the dashboard summary endpoint.
+      description: CommonResponse with `data` as a JobsSummary.
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object
@@ -1463,60 +720,26 @@ components:
     QueueMetrics:
       title: QueueMetrics
       type: object
-      description: |
-        Message counts for each managed RabbitMQ queue. Returned by the
-        dashboard queue-metrics endpoint.
-
-        **Queue descriptions:**
-        - **HIGH_PRIORITY_QUEUE_LENGTH**: Messages in the HIGH priority
-          queue. Consumed first due to consumer priority configuration.
-        - **MEDIUM_PRIORITY_QUEUE_LENGTH**: Messages in the MEDIUM priority
-          queue. Consumed when HIGH queue is empty.
-        - **LOW_PRIORITY_QUEUE_LENGTH**: Messages in the LOW priority queue.
-          Consumed when HIGH and MEDIUM queues are empty.
-        - **RETRY_QUEUE_LENGTH**: Messages in the RETRY queue. This queue
-          has a **30-second TTL** (`RabbitMQConstants.TTL = 30000`). Messages
-          are re-published to their original priority queue after the TTL
-          expires.
-        - **DEAD_LETTER_QUEUE_LENGTH**: Messages in the DEAD_LETTER queue.
-          These are jobs that exhausted all retry attempts
-          (`attemptCount >= maxAttemptCount`). Revive via
-          `POST /api/v1/jobs/revive`.
-
-        All queues are **quorum queues** configured with reject-publish
-        overflow strategy.
+      description: Message counts for each RabbitMQ queue.
       properties:
         queues:
           title: Queues
           type: object
-          description: Map of queue name to current message count.
           properties:
             HIGH_PRIORITY_QUEUE_LENGTH:
-              title: HighPriorityQueueLength
               type: integer
-              description: Message count in the HIGH priority queue.
             MEDIUM_PRIORITY_QUEUE_LENGTH:
-              title: MediumPriorityQueueLength
               type: integer
-              description: Message count in the MEDIUM priority queue.
             LOW_PRIORITY_QUEUE_LENGTH:
-              title: LowPriorityQueueLength
               type: integer
-              description: Message count in the LOW priority queue.
             RETRY_QUEUE_LENGTH:
-              title: RetryQueueLength
               type: integer
-              description: Message count in the RETRY queue (30s TTL).
             DEAD_LETTER_QUEUE_LENGTH:
-              title: DeadLetterQueueLength
               type: integer
-              description: Message count in the DEAD_LETTER queue.
 
     CommonResponseQueueMetrics:
       title: CommonResponseQueueMetrics
-      description: >
-        CommonResponse whose `data` is a `QueueMetrics` object. Returned
-        by the dashboard queue-metrics endpoint.
+      description: CommonResponse with `data` as QueueMetrics.
       allOf:
         - $ref: '#/components/schemas/CommonResponse'
         - type: object

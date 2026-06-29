@@ -2,7 +2,6 @@ package com.nadimnesar.jobqueue.producer.dto.request;
 
 import com.nadimnesar.jobqueue.common.constant.enums.JobPriority;
 import com.nadimnesar.jobqueue.common.constant.enums.JobType;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,7 +27,6 @@ public class JobRequest {
     @NotNull(message = "Job type cannot be null")
     private JobType type;
 
-    @Size(max = 100, message = "Dependencies cannot exceed 100 entries")
     @Builder.Default
     private Set<UUID> dependencies = new HashSet<>();
 
@@ -37,6 +35,5 @@ public class JobRequest {
     private String payload;
 
     @Min(value = 1, message = "Max attempt count must be at least 1")
-    @Max(value = 100, message = "Max attempt count cannot exceed 100")
     private Integer maxAttemptCount;
 }
