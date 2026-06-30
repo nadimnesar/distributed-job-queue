@@ -13,9 +13,7 @@ dependency management.
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
 - [Job Lifecycle](#job-lifecycle)
-- [Configuration](#configuration)
 - [Observability](#observability)
-- [Troubleshooting](#troubleshooting)
 - [Future Enhancements](#future-enhancements)
 - [Contributing](#contributing)
 - [License](#license)
@@ -55,28 +53,6 @@ dependency management.
 
 ![Distributed Job Queue System Design](docs/distributed-job-queue.svg)
 
-```
-┌────────────┐      POST /api/v1/job/create      ┌──────────────┐
-│  Producer  │ ─────────────────────────────────▶│  PostgreSQL  │
-│  (this API)│                                   │  (jobs table)│
-└──────┬─────┘                                   └──────┬───────┘
-       │                                                 │
-       │  afterCommit()                                  │
-       ▼                                                 ▼
-┌──────────────┐   consume / publish   ┌──────────────────────┐
-│   RabbitMQ   │◀─────────────────────▶│    Worker Service    │
-│  (quorum     │                       │ (separate deployable)│
-│   queues)    │                       └──────────────────────┘
-└──────────────┘
-```
-
-- **Producer**: Accepts job submissions via REST API, validates dependencies via DAG check, persists jobs to PostgreSQL,
-  and publishes to RabbitMQ only after the database transaction commits.
-- **Workers**: Independent deployables that consume from priority queues, process jobs, and acknowledge or reject
-  messages.
-- **RabbitMQ**: Six quorum queues — HIGH, MEDIUM, LOW priority queues, a DELAY queue (30-second TTL for delayed retries), a RETRY queue, and a DLQ (Dead Letter Queue).
-- **PostgreSQL**: Source of truth for job state. Workers update status transitions in the database.
-
 ## Tech Stack
 
 | Layer              | Technology                          |
@@ -103,14 +79,6 @@ distributed-job-queue/
 ├── docs/            # Architecture SVG and OpenAPI spec
 └── Dockerfile       # Multi-stage build for all modules
 ```
-
-- **common** — Shared library containing entities (`JobEntity`, `JobDependencyEntity`), repositories, enums (
-  `JobStatus`, `JobType`, `JobPriority`), RabbitMQ configuration, and DTOs used by both producer and worker.
-- **producer** — Spring Boot REST API with endpoints for job creation, cancellation, revival, filtering, and dashboard
-  metrics.
-- **worker** — Spring Boot service that consumes jobs from RabbitMQ, processes them via registered handlers, and manages
-  retry/dead-letter logic.
-- **migration** — Standalone Spring Boot app that runs Liquibase migrations on startup.
 
 ## Getting Started
 
@@ -169,22 +137,6 @@ distributed-job-queue/
 
 ## API Reference
 
-All responses are wrapped in a `CommonResponse` envelope:
-
-```json
-{
-  "message": "Human-readable status message",
-  "code": 200,
-  "data": {
-    "...": "..."
-  },
-  "traceId": "...",
-  "spanId": "..."
-}
-```
-
-On error responses, `data` is always omitted.
-
 Full API documentation is available in [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ### Jobs
@@ -206,59 +158,6 @@ Full API documentation is available in [`docs/openapi.yaml`](docs/openapi.yaml).
 | `GET`  | `/api/v1/dashboard/jobs/summary`  | Get job counts grouped by status |
 | `GET`  | `/api/v1/dashboard/queue-metrics` | Get queue message counts         |
 
-### Examples
-
-**Create a job:**
-
-```bash
-curl -X POST http://192.168.49.2/api/v1/job/create \
-  -H "Content-Type: application/json" \
-  -d '{
-    "priority": "HIGH",
-    "type": "EMAIL_SENDING",
-    "payload": "Send welcome email to user 123",
-    "maxAttemptCount": 3
-  }'
-```
-
-**Create a job with dependencies:**
-
-```bash
-curl -X POST http://192.168.49.2/api/v1/job/create \
-  -H "Content-Type: application/json" \
-  -d '{
-    "priority": "HIGH",
-    "type": "PAYMENT_SENDING",
-    "payload": "Process refund for order 456",
-    "dependencies": [
-      "550e8400-e29b-41d4-a716-446655440000",
-      "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-    ],
-    "maxAttemptCount": 5
-  }'
-```
-
-**List pending jobs:**
-
-```bash
-curl "http://192.168.49.2/api/v1/jobs/filter?status=PENDING&page=0&size=20"
-```
-
-**Get dashboard summary:**
-
-```bash
-curl http://192.168.49.2/api/v1/dashboard/jobs/summary
-```
-
-### Error Handling
-
-| HTTP Status | Cause                                                          |
-|-------------|----------------------------------------------------------------|
-| `400`       | Validation error, malformed JSON, or business rule violation   |
-| `404`       | Job not found or no dead jobs to revive                        |
-| `409`       | Conflict (e.g., cancelling a job that is currently PROCESSING) |
-| `500`       | Internal server error                                          |
-
 ## Job Lifecycle
 
 ```
@@ -271,13 +170,6 @@ PENDING ──▶ PROCESSING ──▶ COMPLETED   (happy path)
               └──▶ CANCELED             (terminal; dependents are informed)
 ```
 
-- **PENDING** — Job created and waiting in the queue.
-- **PROCESSING** — A worker has picked up the job.
-- **COMPLETED** — Job finished successfully; `result` may contain output.
-- **FAILED** — Job failed but retries remain; automatically re-queued.
-- **DEAD** — All retries exhausted; requires manual revive via `/api/v1/jobs/{id}/revive` or `/api/v1/jobs/revive`.
-- **CANCELED** — Job was cancelled by the producer; terminal state.
-
 ### DAG-Based Dependency Rules
 
 Jobs can declare any number of dependencies (UUIDs of other jobs). The system enforces:
@@ -287,48 +179,16 @@ Jobs can declare any number of dependencies (UUIDs of other jobs). The system en
 3. **Priority hierarchy** — A HIGH-priority job cannot depend on MEDIUM or LOW. MEDIUM cannot depend on LOW.
 4. **DAG integrity** — Dependencies form a directed acyclic graph; cyclic dependencies are rejected.
 
-## Configuration
-
-Key configuration values (set via environment variables or `application.properties`):
-
-| Property                                     | Default                | Description                                                |
-|----------------------------------------------|------------------------|------------------------------------------------------------|
-| `AppConstants.DEFAULT_MAXIMUM_ATTEMPT_COUNT` | 5                      | Default retry count when `maxAttemptCount` is not provided |
-| `maxAttemptCount` (per job) | 5 | Configurable per job, min 1, no upper limit |
-| NGINX rate limiting                          | Configured per-ingress | Applied at the NGINX Ingress layer                         |
-
 ## Observability
 
 ### Logs
 
-Access Kibana at `http://192.168.49.2` to search, visualize, and aggregate logs from all services.
+Access Kibana at `http://<minikube-ip>` to search, visualize, and aggregate logs from all services.
 
 ### Tracing
 
 Every API response includes `traceId` and `spanId` fields for distributed tracing. Use these to correlate requests
 across producer and worker services.
-
-### Queue Metrics
-
-Monitor queue depths via the dashboard endpoint:
-
-```bash
-curl http://192.168.49.2/api/v1/dashboard/queue-metrics
-```
-
-Returns counts for: `HIGH_PRIORITY_QUEUE_LENGTH`, `MEDIUM_PRIORITY_QUEUE_LENGTH`, `LOW_PRIORITY_QUEUE_LENGTH`,
-`RETRY_QUEUE_LENGTH`, `DEAD_LETTER_QUEUE_LENGTH`.
-
-## Troubleshooting
-
-| Problem                    | Solution                                                                          |
-|----------------------------|-----------------------------------------------------------------------------------|
-| Pods not starting          | Run `make pod` to check pod status; ensure Minikube is running with `make status` |
-| Ingress not reachable      | Verify ingress controller is ready: `kubectl get pods -n ingress-nginx`           |
-| Jobs stuck in PENDING      | Check worker logs (`make logs-worker`) and RabbitMQ queue depths                  |
-| Jobs going to DEAD         | Check worker logs for error details; use `/api/v1/jobs/revive` to retry           |
-| Cannot connect to API      | Ensure Minikube IP is correct (`make ip`) and ingress addon is enabled            |
-| Database connection issues | Check PostgreSQL pods and PgBouncer configuration                                 |
 
 ## Future Enhancements
 
