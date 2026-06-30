@@ -57,16 +57,16 @@ dependency management.
 
 ```
 ┌────────────┐      POST /api/v1/job/create      ┌──────────────┐
-│  Producer   │ ──────────────────────────────────▶│  PostgreSQL   │
-│  (this API) │                                    │  (jobs table)  │
-└──────┬─────┘                                    └──────┬───────┘
+│  Producer  │ ─────────────────────────────────▶│  PostgreSQL  │
+│  (this API)│                                   │  (jobs table)│
+└──────┬─────┘                                   └──────┬───────┘
        │                                                 │
        │  afterCommit()                                  │
        ▼                                                 ▼
 ┌──────────────┐   consume / publish   ┌──────────────────────┐
-│   RabbitMQ    │◀────────────────────▶│     Worker Service    │
-│  (quorum      │                      │  (separate deployable)│
-│   queues)     │                      └──────────────────────┘
+│   RabbitMQ   │◀─────────────────────▶│    Worker Service    │
+│  (quorum     │                       │ (separate deployable)│
+│   queues)    │                       └──────────────────────┘
 └──────────────┘
 ```
 
