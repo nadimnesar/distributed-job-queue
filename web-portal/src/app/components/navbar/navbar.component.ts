@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-navbar',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink],
   template: `
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
@@ -13,10 +13,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           </svg>
           Distributed Job Queue
         </a>
-        <div class="navbar-nav">
-          <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Dashboard</a>
-          <a class="nav-link" routerLink="/jobs" routerLinkActive="active">Jobs</a>
-        </div>
       </div>
     </nav>
   `,

@@ -17,6 +17,15 @@ describe('App Routes', () => {
     expect(routes.length).toBe(3);
   });
 
+  describe('/jobs redirect (AC10)', () => {
+    it('has a redirect route from "jobs" to ""', () => {
+      const route = routes.find(r => r.path === 'jobs');
+      expect(route).toBeTruthy();
+      expect(route?.redirectTo).toBe('');
+      expect(route?.pathMatch).toBe('full');
+    });
+  });
+
   describe('dashboard route', () => {
     it('maps "" to DashboardComponent', () => {
       const route = routes.find(r => r.path === '');
@@ -26,14 +35,6 @@ describe('App Routes', () => {
 
     it('uses lazy loading', () => {
       const route = routes.find(r => r.path === '');
-      expect(route?.loadComponent).toBeDefined();
-    });
-  });
-
-  describe('job list route', () => {
-    it('maps "jobs" to JobListComponent', () => {
-      const route = routes.find(r => r.path === 'jobs');
-      expect(route).toBeTruthy();
       expect(route?.loadComponent).toBeDefined();
     });
   });

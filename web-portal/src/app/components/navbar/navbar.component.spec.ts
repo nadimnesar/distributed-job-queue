@@ -21,18 +21,10 @@ describe('NavbarComponent', () => {
   });
 
   describe('navigation links', () => {
-    it('renders Dashboard link', () => {
+    it('does not render any nav links', () => {
       const el = fixture.nativeElement;
       const links = el.querySelectorAll('a.nav-link');
-      const linkTexts = Array.from(links).map((l: any) => l.textContent.trim());
-      expect(linkTexts).toContain('Dashboard');
-    });
-
-    it('renders Jobs link', () => {
-      const el = fixture.nativeElement;
-      const links = el.querySelectorAll('a.nav-link');
-      const linkTexts = Array.from(links).map((l: any) => l.textContent.trim());
-      expect(linkTexts).toContain('Jobs');
+      expect(links.length).toBe(0);
     });
 
     it('does not render Create Job link', () => {
@@ -46,6 +38,13 @@ describe('NavbarComponent', () => {
       const el = fixture.nativeElement;
       const createLink = el.querySelector('a[href="/jobs/create"]');
       expect(createLink).toBeFalsy();
+    });
+
+    it('does not render a "Jobs" link (AC14)', () => {
+      const el = fixture.nativeElement;
+      const links = el.querySelectorAll('a.nav-link');
+      const linkTexts = Array.from(links).map((l: any) => l.textContent.trim());
+      expect(linkTexts).not.toContain('Jobs');
     });
   });
 

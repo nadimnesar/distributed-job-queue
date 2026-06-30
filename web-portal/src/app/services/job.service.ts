@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { CommonResponse, Job, JobRequest, JobStatus, JobType } from '../models/job.model';
+import { CommonResponse } from '../models/api.model';
+import { Job, JobRequest, JobStatus, JobType } from '../models/job.model';
 
 @Injectable({ providedIn: 'root' })
 export class JobService {

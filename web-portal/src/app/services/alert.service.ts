@@ -1,10 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-
-export interface Alert {
-  message: string;
-  type: 'success' | 'danger' | 'warning' | 'info';
-}
+import { Alert } from '../models/alert.model';
 
 @Injectable({ providedIn: 'root' })
 export class AlertService {

@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { JobService } from '../../services/job.service';
 import { AlertService } from '../../services/alert.service';
 import { JobPriority, JobType, JOB_PRIORITIES, JOB_TYPES } from '../../models/job.model';
+import { formatType as formatTypeUtil } from '../../utils/format.utils';
 
 @Component({
   selector: 'app-job-create-modal',
@@ -154,6 +155,7 @@ export class JobCreateModalComponent {
   }
 
   formatType(type: string): string {
-    return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    return formatTypeUtil(type);
   }
+
 }

@@ -8,8 +8,8 @@ export const routes: Routes = [
   },
   {
     path: 'jobs',
-    loadComponent: () =>
-      import('./pages/job-list/job-list.component').then(m => m.JobListComponent)
+    redirectTo: '',
+    pathMatch: 'full'
   },
   {
     path: 'jobs/:id',

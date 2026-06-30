@@ -4,13 +4,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { JobService } from '../../services/job.service';
 import { AlertService } from '../../services/alert.service';
 import { Job } from '../../models/job.model';
+import { formatType as formatTypeUtil } from '../../utils/format.utils';
 
 @Component({
   selector: 'app-job-detail',
   imports: [CommonModule, RouterLink],
   template: `
     <a routerLink="/jobs" class="text-decoration-none mb-3 d-inline-block">
-      &larr; Back to Jobs
+      &larr; Back
     </a>
 
     @if (loading) {
@@ -112,7 +113,7 @@ import { Job } from '../../models/job.model';
     } @else {
       <div class="text-center py-5 text-muted">
         <p>Job not found.</p>
-        <a routerLink="/jobs" class="btn btn-outline-secondary btn-sm">Back to Jobs</a>
+        <a routerLink="/jobs" class="btn btn-outline-secondary btn-sm">Back</a>
       </div>
     }
   `
@@ -159,6 +160,7 @@ export class JobDetailComponent implements OnInit {
   }
 
   formatType(type: string): string {
-    return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    return formatTypeUtil(type);
   }
+
 }

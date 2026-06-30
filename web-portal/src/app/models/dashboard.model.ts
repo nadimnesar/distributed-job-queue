@@ -13,6 +13,7 @@ export interface QueueMetrics {
     HIGH_PRIORITY_QUEUE_LENGTH: number;
     MEDIUM_PRIORITY_QUEUE_LENGTH: number;
     LOW_PRIORITY_QUEUE_LENGTH: number;
+    DELAY_QUEUE_LENGTH: number;
     RETRY_QUEUE_LENGTH: number;
     DEAD_LETTER_QUEUE_LENGTH: number;
   };

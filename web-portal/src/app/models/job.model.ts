@@ -24,14 +24,6 @@ export interface Job {
   completedAt?: string;
 }
 
-export interface CommonResponse<T> {
-  message: string;
-  code: number;
-  data: T;
-  traceId?: string;
-  spanId?: string;
-}
-
 export const JOB_STATUSES: JobStatus[] = ['PENDING', 'PROCESSING', 'CANCELED', 'COMPLETED', 'FAILED', 'DEAD'];
 export const JOB_PRIORITIES: JobPriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 export const JOB_TYPES: JobType[] = ['EMAIL_SENDING', 'PAYMENT_SENDING'];

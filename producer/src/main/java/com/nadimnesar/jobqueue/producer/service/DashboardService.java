@@ -63,6 +63,8 @@ public class DashboardService {
                 jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_MEDIUM));
         queueMetrics.put("LOW_PRIORITY_QUEUE_LENGTH",
                 jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_LOW));
+        queueMetrics.put("DELAY_QUEUE_LENGTH",
+                jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_DELAY));
         queueMetrics.put("RETRY_QUEUE_LENGTH",
                 jobQueueService.getQueueMessageCount(RabbitMQConstants.QUEUE_RETRY));
         queueMetrics.put("DEAD_LETTER_QUEUE_LENGTH",
