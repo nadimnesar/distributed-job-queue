@@ -98,9 +98,9 @@ distributed-job-queue/
    cd distributed-job-queue
    ```
 
-2. Start Minikube and enable the ingress addon:
+2. Start Minikube and enable ingress and keda:
    ```bash
-   make start
+   make setup
    ```
 
 3. Build the service images into the Minikube Docker daemon:
@@ -127,6 +127,7 @@ distributed-job-queue/
 | `make pod`            | List pods in all namespaces     |
 | `make svc`            | List services in all namespaces |
 | `make pvc`            | List persistent volume claims   |
+| `make apply`          | Apply dev overlay to cluster    |
 | `make logs-producer`  | Tail producer logs              |
 | `make logs-worker`    | Tail worker logs                |
 | `make logs-rabbitmq`  | Tail RabbitMQ logs              |

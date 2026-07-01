@@ -1,0 +1,36 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker
+  namespace: distributed-job-queue
+spec:
+  scaleTargetRef:
+    name: worker
+  minReplicaCount: 1
+  cooldownPeriod: 60
+  pollingInterval: 15
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: http
+        queueName: queue.high
+        mode: QueueLength
+        value: "10"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq
+    - type: rabbitmq
+      metadata:
+        protocol: http
+        queueName: queue.medium
+        mode: QueueLength
+        value: "10"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq
+    - type: rabbitmq
+      metadata:
+        protocol: http
+        queueName: queue.low
+        mode: QueueLength
+        value: "10"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq

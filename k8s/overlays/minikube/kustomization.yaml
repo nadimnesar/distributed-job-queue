@@ -8,5 +8,6 @@ resources:
   - ../../base/app/rabbitmq
   - ../../base/app/producer
   - ../../base/app/worker
+  - ../../base/app/keda
   - ../../base/app/ingress
   - ../../base/observability

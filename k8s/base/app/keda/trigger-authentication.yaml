@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-trigger-auth-rabbitmq
+  namespace: distributed-job-queue
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: keda-rabbitmq-secret
+      key: host
+    - parameter: username
+      name: keda-rabbitmq-secret
+      key: username
+    - parameter: password
+      name: keda-rabbitmq-secret
+      key: password

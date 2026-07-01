@@ -4,10 +4,20 @@ NAMESPACE ?= distributed-job-queue
 OBSERVABILITY_NAMESPACE ?= observability
 OVERLAY ?= k8s/overlays/minikube
 DEV_OVERLAY ?= k8s/overlays/dev
+KEDA_NAMESPACE ?= keda
+KEDA_VERSION ?= 2.20.1
 
 start:
 	$(MINIKUBE) start
 	minikube addons enable ingress
+
+keda:
+	$(KUBECTL) apply --server-side -f https://github.com/kedacore/keda/releases/download/v$(KEDA_VERSION)/keda-$(KEDA_VERSION)-crds.yaml
+	$(KUBECTL) wait --for=condition=Established crd --all --timeout=60s
+	$(KUBECTL) apply --server-side --force-conflicts -f https://github.com/kedacore/keda/releases/download/v$(KEDA_VERSION)/keda-$(KEDA_VERSION)-core.yaml
+	$(KUBECTL) wait --namespace $(KEDA_NAMESPACE) --for=condition=ready pod --selector=app=keda-operator --timeout=120s
+
+setup: start keda
 
 status:
 	$(MINIKUBE) status
@@ -21,6 +31,7 @@ build:
 		docker build --build-arg MODULE=worker -t worker:latest . && \
 		docker build --build-arg MODULE=migration -t migration:latest .
 
+# Note: Run 'make setup' before 'make deploy' to ensure KEDA CRDs are installed
 deploy:
 	$(KUBECTL) wait --namespace ingress-nginx \
 		--for=condition=ready pod \
