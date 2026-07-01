@@ -27,9 +27,12 @@ dependency management.
 - Priority hierarchy enforcement — HIGH jobs cannot depend on MEDIUM/LOW jobs
 - Job lifecycle tracking with status transitions (PENDING → PROCESSING → COMPLETED/FAILED/DEAD)
 - Automatic retry with configurable max attempt count (default: 5, no upper limit)
+- Custom maxAttemptCount per job (min 1, no upper limit, default 5)
 - Delayed retries via a DELAY queue (30-second TTL) that routes failed jobs to a RETRY queue
 - Job cancellation with dependent job awareness
 - Dead job revival (single or bulk)
+- Job type routing with handler registry and auto-discovery of JobHandler beans
+- Stale dependency cleanup during retry (completed and orphan dependency rows automatically removed)
 
 ### Infrastructure
 
@@ -40,6 +43,10 @@ dependency management.
 - Virtual threads for high-concurrency job execution
 - PgBouncer for efficient connection pooling across producers and workers
 - Highly available multi-node RabbitMQ cluster
+- KEDA-based autoscaling of worker pods based on queue length (>10 messages, cooldown 60s, polling 15s)
+- Graceful shutdown with 55-second timeout for in-flight jobs (ordered shutdown with polling)
+- RabbitMQ startup health check with 3 retries (configurable via application properties)
+- Time-ordered UUIDs for better database indexing performance
 
 ### Deployment & Observability
 
@@ -51,7 +58,7 @@ dependency management.
 
 ## Architecture
 
-![Distributed Job Queue System Design](docs/distributed-job-queue.svg)
+![Distributed Job Queue System Design](docs/distributed-job-queue.drawio.svg)
 
 ## Tech Stack
 
@@ -71,11 +78,11 @@ dependency management.
 
 ```
 distributed-job-queue/
-├── common/          # Shared entities, repositories, DTOs, and RabbitMQ config
+├── common/          # Shared entities, repositories, DTOs, RabbitMQ config, and tracing utilities
 ├── producer/        # REST API for job submission, tracking, and dashboard
-├── worker/          # Job consumer and processor (separate deployable)
-├── migration/       # Liquibase database migrations
-├── k8s/             # Kubernetes manifests (base + overlays)
+├── worker/          # Job consumer, processor, and retry handler
+├── migration/       # Liquibase database migrations (runs as K8s Job)
+├── k8s/             # Kubernetes manifests (base + overlays for dev/prod)
 ├── docs/            # Architecture SVG and OpenAPI spec
 └── Dockerfile       # Multi-stage build for all modules
 ```
@@ -196,7 +203,7 @@ across producer and worker services.
 - [ ] Improve job distribution algorithm for better worker utilization
 - [ ] Implement job scheduling capabilities
 - [ ] Add PostgreSQL replication for database redundancy
-- [ ] Add advanced monitoring with Prometheus and Grafana
+- [ ] Add circuit breaker pattern for external service calls
 
 ## Contributing
 
