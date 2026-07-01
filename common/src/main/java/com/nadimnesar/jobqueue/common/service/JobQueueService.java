@@ -211,6 +211,15 @@ public class JobQueueService {
         }
     }
 
+    public void nack(Channel channel, long deliveryTag, String jobId, boolean requeue) {
+        try {
+            channel.basicNack(deliveryTag, false, requeue);
+            log.info("Nacked job {} (requeue={})", jobId, requeue);
+        } catch (IOException e) {
+            log.error("Failed to nack for job {}: {}", jobId, e.getMessage(), e);
+        }
+    }
+
     public void ack(ConsumedMessage message) {
         String jobId = message.jobId();
         Channel channel = message.channel();

@@ -335,4 +335,77 @@ class JobRetryServiceTest {
         verify(jobQueueService, never()).moveToDeadLetter(anyString());
         verifyNoMoreInteractions(jobQueueService);
     }
+
+    @Test
+    @DisplayName("AC1: when updateAsDead() throws, message is nacked with requeue=true (not acked)")
+    void onRetryMessage_updateAsDeadThrows_nackWithRequeueTrue() {
+        // Given: a FAILED retry job that causes a non-transient exception during processing
+        UUID jobId = UUID.randomUUID();
+        JobEntity job = JobEntity.builder()
+                .id(jobId)
+                .type(JobType.EMAIL_SENDING)
+                .payload("{}")
+                .status(JobStatus.FAILED)
+                .priority(JobPriority.HIGH)
+                .attemptCount(1)
+                .maxAttemptCount(3)
+                .build();
+
+        Channel channel = mock(Channel.class);
+        MessageProperties messageProperties = new MessageProperties();
+        messageProperties.setHeaders(Map.of(AppConstants.HEADER_TRACE_ID, "trace-7"));
+        messageProperties.setDeliveryTag(42L);
+        Message message = new Message(jobId.toString().getBytes(), messageProperties);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobDependencyService.cleanupStaleDependencies(jobId))
+                .thenThrow(new RuntimeException("non-transient processing error"));
+        // updateAsDead will find the job again but save() will fail
+        when(jobRepository.save(any(JobEntity.class)))
+                .thenThrow(new RuntimeException("DB write failure during updateAsDead"));
+
+        // When
+        jobRetryService.onRetryMessage(jobId.toString(), channel, message);
+
+        // Then: nack is called with requeue=true, ack is never called
+        verify(jobQueueService).nack(channel, 42L, jobId.toString(), true);
+        verify(jobQueueService, never()).ack(any(Channel.class), anyLong(), anyString());
+        verify(jobQueueService, never()).moveToDeadLetter(anyString());
+    }
+
+    @Test
+    @DisplayName("AC1 regression: when updateAsDead() succeeds, message is acked")
+    void onRetryMessage_updateAsDeadSucceeds_acked() {
+        // Given: a FAILED retry job that causes a non-transient exception during processing
+        UUID jobId = UUID.randomUUID();
+        JobEntity job = JobEntity.builder()
+                .id(jobId)
+                .type(JobType.EMAIL_SENDING)
+                .payload("{}")
+                .status(JobStatus.FAILED)
+                .priority(JobPriority.HIGH)
+                .attemptCount(1)
+                .maxAttemptCount(3)
+                .build();
+
+        Channel channel = mock(Channel.class);
+        MessageProperties messageProperties = new MessageProperties();
+        messageProperties.setHeaders(Map.of(AppConstants.HEADER_TRACE_ID, "trace-8"));
+        messageProperties.setDeliveryTag(42L);
+        Message message = new Message(jobId.toString().getBytes(), messageProperties);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobDependencyService.cleanupStaleDependencies(jobId))
+                .thenThrow(new RuntimeException("non-transient processing error"));
+        // updateAsDead succeeds — save works and moveToDeadLetter is called
+        when(jobRepository.save(any(JobEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        jobRetryService.onRetryMessage(jobId.toString(), channel, message);
+
+        // Then: ack is called, nack is never called
+        verify(jobQueueService).ack(channel, 42L, jobId.toString());
+        verify(jobQueueService, never()).nack(any(Channel.class), anyLong(), anyString(), anyBoolean());
+        verify(jobQueueService).moveToDeadLetter(jobId.toString());
+    }
 }

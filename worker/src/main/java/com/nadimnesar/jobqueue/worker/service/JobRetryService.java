@@ -52,10 +52,11 @@ public class JobRetryService {
                 log.error("Permanent error processing retry job {}, marking as DEAD: {}", jobId, e.getMessage(), e);
                 try {
                     updateAsDead(jobId);
+                    jobQueueService.ack(channel, deliveryTag, jobId);
                 } catch (Exception ex) {
                     log.error("Failed to mark job {} as DEAD during error handling: {}", jobId, ex.getMessage(), ex);
+                    jobQueueService.nack(channel, deliveryTag, jobId, true);
                 }
-                jobQueueService.ack(channel, deliveryTag, jobId);
             }
         } finally {
             TracingUtils.clearTracing();
